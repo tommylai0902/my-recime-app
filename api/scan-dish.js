@@ -1,18 +1,13 @@
-// api/scan-dish.js — 影一張餸相，Claude 認出係咩菜並出食譜
-const Anthropic = require('@anthropic-ai/sdk');
-
-const client = new Anthropic(); // 讀 ANTHROPIC_API_KEY 環境變數
-
+// api/scan-dish.js — 影一張餸相，Gemini 認出係咩菜並出食譜（免費 tier）
 const schema = {
-  type: 'object',
+  type: 'OBJECT',
   properties: {
-    name: { type: 'string', description: '菜式名稱（繁體中文）' },
-    category: { type: 'string', description: '分類，例如 中式/意式/日式' },
-    ingredients: { type: 'array', items: { type: 'string' }, description: '材料清單，每項包含份量' },
-    description: { type: 'string', description: '簡介 + 簡短做法步驟' },
+    name: { type: 'STRING', description: '菜式名稱（繁體中文）' },
+    category: { type: 'STRING', description: '分類，例如 中式/意式/日式' },
+    ingredients: { type: 'ARRAY', items: { type: 'STRING' }, description: '材料清單，每項包含份量' },
+    description: { type: 'STRING', description: '簡介 + 簡短做法步驟' },
   },
   required: ['name', 'category', 'ingredients', 'description'],
-  additionalProperties: false,
 };
 
 module.exports = async (req, res) => {
@@ -22,24 +17,37 @@ module.exports = async (req, res) => {
   if (!image) return res.status(400).json({ error: '缺少圖片' });
 
   try {
-    const msg = await client.messages.create({
-      model: 'claude-opus-4-8',
-      max_tokens: 2048,
-      thinking: { type: 'adaptive' },
-      output_config: { format: { type: 'json_schema', schema } },
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType || 'image/jpeg', data: image } },
-            { type: 'text', text: '認出呢張相入面嘅菜式，然後用繁體中文寫出佢嘅食譜（材料連份量、簡短做法）。' },
-          ],
+    const r = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-goog-api-key': process.env.GEMINI_API_KEY,
         },
-      ],
-    });
-
-    if (msg.stop_reason === 'refusal') return res.status(422).json({ error: '無法辨識呢張相' });
-    const text = msg.content.find((b) => b.type === 'text')?.text;
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { inline_data: { mime_type: mediaType || 'image/jpeg', data: image } },
+                { text: '認出呢張相入面嘅菜式，然後用繁體中文寫出佢嘅食譜（材料連份量、簡短做法）。' },
+              ],
+            },
+          ],
+          generationConfig: { responseMimeType: 'application/json', responseSchema: schema },
+        }),
+      }
+    );
+    if (!r.ok) {
+      const detail = await r.text();
+      console.error(detail);
+      return res.status(r.status === 429 ? 429 : 500).json({
+        error: r.status === 429 ? '請求太密，等一陣再試' : '掃描失敗',
+      });
+    }
+    const data = await r.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return res.status(422).json({ error: '無法辨識呢張相' });
     res.status(200).json(JSON.parse(text));
   } catch (err) {
     console.error(err);

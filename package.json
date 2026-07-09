@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.110.0",
     "@neondatabase/serverless": "^1.0.1",
     "@vercel/postgres": "^0.10.0",
     "axios": "^1.11.0",
