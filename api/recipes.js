@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { getUserId } from './_utils.js';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -6,8 +7,15 @@ const pool = new Pool({
 });
 
 export default async function handler(req, res) {
+  const uid = getUserId(req);
+  if (!uid) return res.status(401).json({ error: 'unauthorized' });
+
   if (req.method === 'GET') {
-    const result = await pool.query('SELECT * FROM recipes ORDER BY id DESC');
+    // user_id IS NULL = 登入功能之前嘅舊食譜，全部人都見到
+    const result = await pool.query(
+      'SELECT * FROM recipes WHERE user_id = $1 OR user_id IS NULL ORDER BY id DESC',
+      [uid]
+    );
     res.status(200).json(result.rows.map(row => {
       let ingredients = row.ingredients;
       if (typeof ingredients === 'string') {
@@ -29,26 +37,12 @@ export default async function handler(req, res) {
       return;
     }
     const result = await pool.query(
-      `INSERT INTO recipes (name, description, image, ingredients, url, category)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO recipes (name, description, image, ingredients, url, category, user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [name, description, image, JSON.stringify(ingredients), url, category]
+      [name, description, image, JSON.stringify(ingredients), url, category, uid]
     );
     res.status(201).json(result.rows[0]);
-    return;
-  }
-
-  if (req.method === 'PUT') {
-    const { id, name, description, image, ingredients, url, category } = req.body;
-    if (!id || !name || !description || !ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
-      res.status(400).json({ error: '所有欄位皆為必填' });
-      return;
-    }
-    const result = await pool.query(
-      `UPDATE recipes SET name=$1, description=$2, image=$3, ingredients=$4, url=$5, category=$6 WHERE id=$7 RETURNING *`,
-      [name, description, image, JSON.stringify(ingredients), url, category, id]
-    );
-    res.status(200).json(result.rows[0]);
     return;
   }
 
