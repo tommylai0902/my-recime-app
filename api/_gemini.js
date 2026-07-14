@@ -7,7 +7,7 @@ export async function askGemini(parts, schema) {
   for (const model of MODELS) {
     const generationConfig = { responseMimeType: 'application/json', responseSchema: schema };
     // Gemini 3 系預設 thinking 深度高，抽食譜呢啲簡單嘢會白等成半分鐘 — 較低佢
-    if (model.startsWith('gemini-3')) generationConfig.thinkingLevel = 'low';
+    if (model.startsWith('gemini-3')) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
     r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {
