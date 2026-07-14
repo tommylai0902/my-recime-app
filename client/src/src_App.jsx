@@ -123,6 +123,10 @@ const DAYS = {
   en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
 };
 const MEALS = ['breakfast', 'lunch', 'dinner'];
+const DEFAULT_CATS = {
+  zh: ['中式', '西式', '日式', '韓式', '泰式', '意式', '甜品', '湯水', '小食'],
+  en: ['Chinese', 'Western', 'Japanese', 'Korean', 'Thai', 'Italian', 'Dessert', 'Soup', 'Snacks'],
+};
 
 const emptyRecipe = {
   name: '',
@@ -281,13 +285,14 @@ const App = () => {
     loadPlan(weekStart);
   };
 
-  const fillForm = (data) => {
+  const fillForm = (data, sourceUrl = '') => {
     setForm({
       ...emptyRecipe,
       name: data.name,
       category: data.category,
       description: data.description,
       ingredients: data.ingredients.join(', '),
+      url: sourceUrl,
     });
     setEditId(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -313,8 +318,9 @@ const App = () => {
     if (!importUrl.trim()) return;
     setImporting(true);
     try {
-      const { data } = await axios.post('/api/import-url', { url: importUrl.trim(), lang });
-      fillForm(data);
+      const source = importUrl.trim();
+      const { data } = await axios.post('/api/import-url', { url: source, lang });
+      fillForm(data, source);
       setImportUrl('');
     } catch (err) {
       alert(t.importFailedPrefix + errMsg(err));
@@ -517,8 +523,14 @@ const App = () => {
                 placeholder={t.category}
                 value={form.category}
                 onChange={handleChange}
+                list="cat-options"
                 className="w-full p-2 border rounded"
               />
+              <datalist id="cat-options">
+                {[...new Set([...DEFAULT_CATS[lang], ...cats])].map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 mb-1">{t.imageUrl}</label>
