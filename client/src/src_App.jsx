@@ -7,7 +7,8 @@ const STR = {
     tab_recipes: '食譜',
     tab_plan: '餐單',
     tab_shopping: '購物清單',
-    scanBtn: '📷 掃描菜式出食譜',
+    scanBtn: '📷 影相掃描',
+    uploadBtn: '🖼 上載圖片',
     scanning: '辨識中⋯⋯',
     scanFailedPrefix: '掃描失敗：',
     scan_failed: '掃描失敗',
@@ -63,7 +64,8 @@ const STR = {
     tab_recipes: 'Recipes',
     tab_plan: 'Meal Plan',
     tab_shopping: 'Shopping',
-    scanBtn: '📷 Scan a dish for its recipe',
+    scanBtn: '📷 Take a photo',
+    uploadBtn: '🖼 Upload a photo',
     scanning: 'Identifying…',
     scanFailedPrefix: 'Scan failed: ',
     scan_failed: 'Scan failed',
@@ -486,10 +488,16 @@ const App = () => {
               {importing ? t.importing : t.importBtn}
             </button>
           </div>
-          <label className={`block text-center mb-6 py-3 px-4 rounded font-bold text-white cursor-pointer ${scanning ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-700'}`}>
-            {scanning ? t.scanning : t.scanBtn}
-            <input type="file" accept="image/*" capture="environment" onChange={handleScan} disabled={scanning} className="hidden" />
-          </label>
+          <div className="flex gap-2 mb-6">
+            <label className={`flex-1 text-center py-3 px-2 rounded font-bold text-white cursor-pointer ${scanning ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-700'}`}>
+              {scanning ? t.scanning : t.scanBtn}
+              <input type="file" accept="image/*" capture="environment" onChange={handleScan} disabled={scanning} className="hidden" />
+            </label>
+            <label className={`flex-1 text-center py-3 px-2 rounded font-bold text-white cursor-pointer ${scanning ? 'bg-gray-400' : 'bg-sky-500 hover:bg-sky-600'}`}>
+              {scanning ? t.scanning : t.uploadBtn}
+              <input type="file" accept="image/*" onChange={handleScan} disabled={scanning} className="hidden" />
+            </label>
+          </div>
           <form onSubmit={handleSubmit} className="mb-8 bg-white p-6 rounded shadow">
             <div className="mb-4">
               <label className="block text-gray-700 mb-1">{t.name}</label>

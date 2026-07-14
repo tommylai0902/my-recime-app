@@ -52,7 +52,8 @@ export default async function handler(req, res) {
   let html;
   try {
     const r = await axios.get(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
+      // IG/FB 只將 og:description（貼文 caption）開放俾 link-preview crawler
+      headers: { 'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)' },
       timeout: 10000,
       maxContentLength: 5 * 1024 * 1024,
     });
@@ -66,16 +67,15 @@ export default async function handler(req, res) {
   const ld = fromJsonLd($);
   if (ld) return res.status(200).json(ld);
 
-  // fallback：抽頁面文字俾 Gemini（IG 之類就靠 og:description 條 caption）
-  const text = [
-    $('title').text(),
-    $('meta[property="og:description"]').attr('content'),
-    $('body').text(),
-  ]
-    .filter(Boolean)
-    .join('\n')
-    .replace(/\s+/g, ' ')
-    .slice(0, 15000);
+  // fallback：抽頁面文字俾 Gemini — og:description 行先（IG caption 喺呢度），body 文字跟尾
+  const title = $('meta[property="og:title"]').attr('content') || $('title').text() || '';
+  const og = $('meta[property="og:description"]').attr('content') || '';
+  const body = $('body').text().replace(/\s+/g, ' ');
+  // 攞唔到有用內容（例如被封鎖淨返個空殼）就直接俾明確錯誤，唔好等 AI 老作
+  if ((og + body).replace(/\s+/g, '').length < 100) {
+    return res.status(422).json({ error: 'fetch_failed' });
+  }
+  const text = [title, og, body].filter(Boolean).join('\n').slice(0, 15000);
 
   try {
     const recipe = await askGemini([{ text: (prompts[lang] || prompts.zh) + text }], recipeSchema);
