@@ -97,7 +97,7 @@ export default async function handler(req, res) {
 
   const t1 = Date.now();
   try {
-    const recipe = await askGemini([{ text: (prompts[lang] || prompts.zh) + text }], recipeSchema);
+    const recipe = await askGemini([{ text: (prompts[lang] || prompts.zh) + text }], recipeSchema, { fast: true });
     res.status(200).json({ ...recipe, _ms: { fetch: t1 - t0, ai: Date.now() - t1 } });
   } catch (err) {
     geminiError(res, err, 'gemini_failed');

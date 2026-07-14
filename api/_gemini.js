@@ -1,13 +1,15 @@
 // api/_gemini.js — 共用 Gemini 呼叫（底線開頭，Vercel 唔會當成 route）
 // ponytail: 免費 tier 個別模型會塞車（503）/退役（404），順序試落去
 const MODELS = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite'];
+// 文字任務（抽食譜/購物清單）用 lite 先：快幾倍，質素夠用；相片辨識先至用大模型
+const FAST_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
 
-export async function askGemini(parts, schema) {
+export async function askGemini(parts, schema, { fast = false } = {}) {
   let r;
-  for (const model of MODELS) {
+  for (const model of fast ? FAST_MODELS : MODELS) {
     const generationConfig = { responseMimeType: 'application/json', responseSchema: schema };
-    // Gemini 3 系預設 thinking 深度高，抽食譜呢啲簡單嘢會白等成半分鐘 — 較低佢
-    if (model.startsWith('gemini-3')) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
+    // Gemini 3 系預設 thinking 深度高，抽食譜呢啲簡單嘢會白等成半分鐘 — 較到最低
+    if (model.startsWith('gemini-3')) generationConfig.thinkingConfig = { thinkingLevel: 'minimal' };
     r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {

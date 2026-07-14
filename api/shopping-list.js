@@ -56,7 +56,7 @@ export default async function handler(req, res) {
     .join('\n');
 
   try {
-    const list = await askGemini([{ text: (prompts[lang] || prompts.zh) + lines }], listSchema);
+    const list = await askGemini([{ text: (prompts[lang] || prompts.zh) + lines }], listSchema, { fast: true });
     res.status(200).json(list);
   } catch (err) {
     geminiError(res, err, 'list_failed');
