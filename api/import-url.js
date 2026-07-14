@@ -61,6 +61,7 @@ export default async function handler(req, res) {
   const { url, lang } = req.body || {};
   if (!url || !/^https?:\/\//i.test(url)) return res.status(400).json({ error: 'invalid_url' });
 
+  const t0 = Date.now();
   let html;
   try {
     const r = await fetch(url, {
@@ -94,9 +95,10 @@ export default async function handler(req, res) {
   }
   const text = [title, og, body].filter(Boolean).join('\n').slice(0, 15000);
 
+  const t1 = Date.now();
   try {
     const recipe = await askGemini([{ text: (prompts[lang] || prompts.zh) + text }], recipeSchema);
-    res.status(200).json(recipe);
+    res.status(200).json({ ...recipe, _ms: { fetch: t1 - t0, ai: Date.now() - t1 } });
   } catch (err) {
     geminiError(res, err, 'gemini_failed');
   }
