@@ -22,6 +22,12 @@ const STR = {
     uncategorized: '未分類',
     other: '其他',
     noInsights: '仲未有數據，加幾個食譜先啦！',
+    chartCalories: '卡路里（每份）',
+    chartMacros: '營養素（克／每份）',
+    protein: '蛋白質',
+    carbs: '碳水化合物',
+    fat: '脂肪',
+    nutritionNote: '＊AI 估算值，僅供參考',
     scanBtn: '📷 影相掃描',
     uploadBtn: '🖼 上載圖片',
     scanning: '辨識中⋯⋯',
@@ -87,6 +93,12 @@ const STR = {
     uncategorized: 'Uncategorized',
     other: 'Other',
     noInsights: 'No data yet — add some recipes first!',
+    chartCalories: 'Calories (per serving)',
+    chartMacros: 'Macros (g per serving)',
+    protein: 'Protein',
+    carbs: 'Carbs',
+    fat: 'Fat',
+    nutritionNote: '* AI estimates, for reference only',
     scanBtn: '📷 Take a photo',
     uploadBtn: '🖼 Upload a photo',
     scanning: 'Identifying…',
@@ -865,7 +877,7 @@ const App = () => {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="bg-white border rounded p-4 shadow">
+              <div className="bg-white border rounded p-4 mb-4 shadow">
                 <p className="font-bold mb-2">{t.chartIngredients}</p>
                 <ResponsiveContainer width="100%" height={Math.max(200, insights.ingredientCounts.length * 36)}>
                   <BarChart data={insights.ingredientCounts} layout="vertical" margin={{ left: 8, right: 24 }}>
@@ -876,6 +888,36 @@ const App = () => {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              {insights.nutrition && insights.nutrition.length > 0 && (
+                <>
+                  <div className="bg-white border rounded p-4 mb-4 shadow">
+                    <p className="font-bold mb-2">{t.chartCalories}</p>
+                    <ResponsiveContainer width="100%" height={Math.max(200, insights.nutrition.length * 36)}>
+                      <BarChart data={insights.nutrition} layout="vertical" margin={{ left: 8, right: 24 }}>
+                        <XAxis type="number" allowDecimals={false} stroke="#898781" />
+                        <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 12 }} stroke="#898781" />
+                        <Tooltip />
+                        <Bar dataKey="calories" name="kcal" fill="#eb6834" radius={[0, 4, 4, 0]} barSize={18} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="bg-white border rounded p-4 shadow">
+                    <p className="font-bold mb-2">{t.chartMacros}</p>
+                    <ResponsiveContainer width="100%" height={Math.max(200, insights.nutrition.length * 36)}>
+                      <BarChart data={insights.nutrition} layout="vertical" margin={{ left: 8, right: 24 }}>
+                        <XAxis type="number" allowDecimals={false} stroke="#898781" />
+                        <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 12 }} stroke="#898781" />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="protein" name={t.protein} stackId="m" fill="#2a78d6" barSize={18} />
+                        <Bar dataKey="carbs" name={t.carbs} stackId="m" fill="#1baf7a" barSize={18} />
+                        <Bar dataKey="fat" name={t.fat} stackId="m" fill="#eda100" radius={[0, 4, 4, 0]} barSize={18} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <p className="text-gray-400 text-xs mt-2">{t.nutritionNote}</p>
+                  </div>
+                </>
+              )}
             </>
           );
         })()

@@ -31,7 +31,8 @@ export default async function handler(req, res) {
     if (req.method === 'PUT') {
       const { name, description, ingredients, image, url, category } = req.body;
       const result = await pool.query(
-        `UPDATE recipes SET name = $1, description = $2, ingredients = $3, image = $4, url = $5, category = $6
+        `UPDATE recipes SET name = $1, description = $2, ingredients = $3, image = $4, url = $5, category = $6,
+                nutrition = NULL
          WHERE id = $7 AND (user_id = $8 OR user_id IS NULL) RETURNING *`,
         [name, description, JSON.stringify(ingredients), image, url, category, id, uid]
       );
