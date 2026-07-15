@@ -20,7 +20,8 @@ export default async function handler(req, res) {
         { inline_data: { mime_type: mediaType || 'image/jpeg', data: image } },
         { text: prompts[lang] || prompts.zh },
       ],
-      recipeSchema
+      recipeSchema,
+      { fast: true } // ponytail: lite 模型認餸夠用，3.5-flash 免費 tier 慢成半分鐘；認錯嘢先再升返
     );
     res.status(200).json(recipe);
   } catch (err) {

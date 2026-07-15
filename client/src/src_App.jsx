@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import {
+  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts';
+
+// dataviz 驗證過嘅 categorical palette（固定次序，唔好循環生色）
+const CHART_COLORS = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
+const CHART_GREY = '#898781';
 
 const STR = {
   zh: {
@@ -7,6 +14,14 @@ const STR = {
     tab_recipes: '食譜',
     tab_plan: '餐單',
     tab_shopping: '購物清單',
+    tab_insights: '統計',
+    summaryTotal: '食譜總數',
+    summaryTop: '最多食譜嘅分類',
+    chartByCategory: '分類分佈',
+    chartIngredients: '每個食譜材料數',
+    uncategorized: '未分類',
+    other: '其他',
+    noInsights: '仲未有數據，加幾個食譜先啦！',
     scanBtn: '📷 影相掃描',
     uploadBtn: '🖼 上載圖片',
     scanning: '辨識中⋯⋯',
@@ -64,6 +79,14 @@ const STR = {
     tab_recipes: 'Recipes',
     tab_plan: 'Meal Plan',
     tab_shopping: 'Shopping',
+    tab_insights: 'Insights',
+    summaryTotal: 'Total recipes',
+    summaryTop: 'Top category',
+    chartByCategory: 'Recipes by category',
+    chartIngredients: 'Ingredients per recipe',
+    uncategorized: 'Uncategorized',
+    other: 'Other',
+    noInsights: 'No data yet — add some recipes first!',
     scanBtn: '📷 Take a photo',
     uploadBtn: '🖼 Upload a photo',
     scanning: 'Identifying…',
@@ -204,6 +227,9 @@ const App = () => {
   const [weekStart, setWeekStart] = useState(getMonday(new Date()));
   const [plan, setPlan] = useState({});
 
+  const [insights, setInsights] = useState(null);
+  const [insightsBusy, setInsightsBusy] = useState(false);
+
   const [shopSel, setShopSel] = useState(() => loadJson('shopSel', []));
   const [shopList, setShopList] = useState(() => loadJson('shopList', null));
   const [shopChecked, setShopChecked] = useState(() => loadJson('shopChecked', {}));
@@ -273,6 +299,19 @@ const App = () => {
   useEffect(() => {
     if (token && tab === 'plan') loadPlan(weekStart);
   }, [token, tab, weekStart]);
+
+  useEffect(() => {
+    if (token && tab === 'insights') {
+      setInsightsBusy(true);
+      axios
+        .get('/api/insights')
+        .then(({ data }) => setInsights(data))
+        .catch((err) => {
+          if (err.response?.status === 401) logout();
+        })
+        .finally(() => setInsightsBusy(false));
+    }
+  }, [token, tab]);
 
   const setSlot = async (date, meal, rid) => {
     if (!rid) return;
@@ -463,11 +502,11 @@ const App = () => {
       </div>
 
       <div className="flex gap-2 mb-6">
-        {['recipes', 'plan', 'shopping'].map((k) => (
+        {['recipes', 'plan', 'shopping', 'insights'].map((k) => (
           <button
             key={k}
             onClick={() => setTab(k)}
-            className={`flex-1 py-2 rounded font-bold ${
+            className={`flex-1 py-2 rounded font-bold text-sm sm:text-base ${
               tab === k ? 'bg-orange-500 text-white' : 'bg-white text-gray-600 border'
             }`}
           >
@@ -774,6 +813,72 @@ const App = () => {
             </div>
           )}
         </>
+      )}
+
+      {tab === 'insights' && (
+        insightsBusy || !insights ? (
+          <p>{t.loading}</p>
+        ) : insights.byCategory.length === 0 ? (
+          <p>{t.noInsights}</p>
+        ) : (() => {
+          const total = insights.byCategory.reduce((s, c) => s + c.count, 0);
+          const catData = insights.byCategory.map((c) => ({
+            name: c.category || t.uncategorized,
+            value: c.count,
+          }));
+          const donut =
+            catData.length > 8
+              ? [
+                  ...catData.slice(0, 7),
+                  { name: t.other, value: catData.slice(7).reduce((s, x) => s + x.value, 0) },
+                ]
+              : catData;
+          return (
+            <>
+              <p className="mb-4 font-bold">
+                {t.summaryTotal}：{total} ・ {t.summaryTop}：{catData[0].name}（{catData[0].value}）
+              </p>
+              <div className="bg-white border rounded p-4 mb-4 shadow">
+                <p className="font-bold mb-2">{t.chartByCategory}</p>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={donut}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius="50%"
+                      outerRadius="75%"
+                      paddingAngle={2}
+                      label={(e) => `${e.name} ${e.value}`}
+                    >
+                      {donut.map((d, i) => (
+                        <Cell
+                          key={d.name}
+                          fill={d.name === t.other ? CHART_GREY : CHART_COLORS[i % CHART_COLORS.length]}
+                          stroke="#ffffff"
+                          strokeWidth={2}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="bg-white border rounded p-4 shadow">
+                <p className="font-bold mb-2">{t.chartIngredients}</p>
+                <ResponsiveContainer width="100%" height={Math.max(200, insights.ingredientCounts.length * 36)}>
+                  <BarChart data={insights.ingredientCounts} layout="vertical" margin={{ left: 8, right: 24 }}>
+                    <XAxis type="number" allowDecimals={false} stroke="#898781" />
+                    <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 12 }} stroke="#898781" />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#2a78d6" radius={[0, 4, 4, 0]} barSize={18} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          );
+        })()
       )}
     </div>
   );
