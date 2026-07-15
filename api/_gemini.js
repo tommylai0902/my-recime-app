@@ -46,7 +46,11 @@ export const recipeSchema = {
   type: 'OBJECT',
   properties: {
     name: { type: 'STRING', description: '菜式名稱' },
-    category: { type: 'STRING', description: '分類，例如 中式/意式/日式' },
+    category: {
+      type: 'STRING',
+      enum: ['chinese', 'western', 'japanese', 'korean', 'thai', 'italian', 'dessert', 'soup', 'snack', 'other'],
+      description: '分類代碼（統一用英文代碼，前端會翻譯顯示）',
+    },
     ingredients: { type: 'ARRAY', items: { type: 'STRING' }, description: '材料清單，每項包含份量' },
     description: { type: 'STRING', description: '簡介 + 簡短做法步驟' },
   },

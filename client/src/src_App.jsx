@@ -158,9 +158,28 @@ const DAYS = {
   en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
 };
 const MEALS = ['breakfast', 'lunch', 'dinner'];
-const DEFAULT_CATS = {
-  zh: ['中式', '西式', '日式', '韓式', '泰式', '意式', '甜品', '湯水', '小食'],
-  en: ['Chinese', 'Western', 'Japanese', 'Korean', 'Thai', 'Italian', 'Dessert', 'Soup', 'Snacks'],
+
+// 分類：DB 統一存代碼，顯示先按語言翻譯；自訂分類照存原文
+const CATS = [
+  { code: 'chinese', zh: '中式', en: 'Chinese' },
+  { code: 'western', zh: '西式', en: 'Western' },
+  { code: 'japanese', zh: '日式', en: 'Japanese' },
+  { code: 'korean', zh: '韓式', en: 'Korean' },
+  { code: 'thai', zh: '泰式', en: 'Thai' },
+  { code: 'italian', zh: '意式', en: 'Italian' },
+  { code: 'dessert', zh: '甜品', en: 'Dessert' },
+  { code: 'soup', zh: '湯水', en: 'Soup' },
+  { code: 'snack', zh: '小食', en: 'Snacks' },
+  { code: 'other', zh: '其他', en: 'Other' },
+];
+const catLabel = (v, lang) => (CATS.find((c) => c.code === v) || {})[lang] || v;
+const normalizeCat = (input) => {
+  const s = (input || '').trim();
+  if (!s) return '';
+  const hit = CATS.find(
+    (c) => c.code === s.toLowerCase() || c.zh === s || c.en.toLowerCase() === s.toLowerCase()
+  );
+  return hit ? hit.code : s;
 };
 
 const emptyRecipe = {
@@ -340,7 +359,7 @@ const App = () => {
     setForm({
       ...emptyRecipe,
       name: data.name,
-      category: data.category,
+      category: catLabel(data.category, lang),
       description: data.description,
       ingredients: data.ingredients.join(', '),
       url: sourceUrl,
@@ -405,6 +424,7 @@ const App = () => {
     e.preventDefault();
     const payload = {
       ...form,
+      category: normalizeCat(form.category),
       ingredients: form.ingredients.split(',').map(s => s.trim()),
     };
     if (editId) {
@@ -421,6 +441,7 @@ const App = () => {
     setTab('recipes');
     setForm({
       ...recipe,
+      category: catLabel(recipe.category, lang),
       ingredients: Array.isArray(recipe.ingredients)
         ? recipe.ingredients.join(', ')
         : recipe.ingredients,
@@ -578,7 +599,7 @@ const App = () => {
                 className="w-full p-2 border rounded"
               />
               <datalist id="cat-options">
-                {[...new Set([...DEFAULT_CATS[lang], ...cats])].map((c) => (
+                {[...new Set([...CATS.map((c) => c[lang]), ...cats.map((v) => catLabel(v, lang))])].map((c) => (
                   <option key={c} value={c} />
                 ))}
               </datalist>
@@ -654,7 +675,7 @@ const App = () => {
                     catFilter === c ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600'
                   }`}
                 >
-                  {c || t.all}
+                  {c ? catLabel(c, lang) : t.all}
                 </button>
               ))}
             </div>
@@ -668,7 +689,7 @@ const App = () => {
             shownRecipes.map((recipe) => (
               <div key={recipe.id} className="bg-white border rounded p-4 mb-4 shadow">
                 <h2 className="text-lg font-bold">{recipe.name}</h2>
-                <p><strong>{t.categoryLabel}</strong>{recipe.category}</p>
+                <p><strong>{t.categoryLabel}</strong>{catLabel(recipe.category, lang)}</p>
                 <p>{recipe.description}</p>
                 <ul className="list-disc ml-6">
                   {Array.isArray(recipe.ingredients)
@@ -835,7 +856,7 @@ const App = () => {
         ) : (() => {
           const total = insights.byCategory.reduce((s, c) => s + c.count, 0);
           const catData = insights.byCategory.map((c) => ({
-            name: c.category || t.uncategorized,
+            name: catLabel(c.category, lang) || t.uncategorized,
             value: c.count,
           }));
           const donut =
