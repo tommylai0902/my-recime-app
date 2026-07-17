@@ -1,5 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import axios from 'axios';
+
+const GlobeView = lazy(() => import('./GlobeView.jsx'));
+
+// 菜系 → 地圖座標（西式擺美國、甜品擺法國、湯水擺廣州、小食擺台北）
+const CAT_GEO = {
+  chinese: [35.9, 104.2],
+  western: [39.8, -98.6],
+  japanese: [36.2, 138.3],
+  korean: [36.5, 127.9],
+  thai: [15.9, 101.0],
+  italian: [42.8, 12.5],
+  dessert: [46.6, 2.35],
+  soup: [23.1, 113.3],
+  snack: [25.05, 121.5],
+};
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
@@ -11,10 +26,13 @@ const CHART_GREY = '#898781';
 const STR = {
   zh: {
     title: '🍽 我的食譜',
+    tab_home: '主頁',
     tab_recipes: '食譜',
     tab_plan: '餐單',
     tab_shopping: '購物清單',
     tab_insights: '統計',
+    tagline: '將你嘅食譜放上世界地圖',
+    globeHint: '撳個標記即刻去嗰個菜系嘅食譜',
     summaryTotal: '食譜總數',
     summaryTop: '最多食譜嘅分類',
     chartByCategory: '分類分佈',
@@ -82,10 +100,13 @@ const STR = {
   },
   en: {
     title: '🍽 My Recipes',
+    tab_home: 'Home',
     tab_recipes: 'Recipes',
     tab_plan: 'Meal Plan',
     tab_shopping: 'Shopping',
     tab_insights: 'Insights',
+    tagline: 'Your recipes on the world map',
+    globeHint: 'Tap a marker to jump to that cuisine',
     summaryTotal: 'Total recipes',
     summaryTop: 'Top category',
     chartByCategory: 'Recipes by category',
@@ -173,6 +194,21 @@ const CATS = [
   { code: 'other', zh: '其他', en: 'Other' },
 ];
 const catLabel = (v, lang) => (CATS.find((c) => c.code === v) || {})[lang] || v;
+// 地球標記：有食譜就顯示數量，冇就全部菜系做裝飾
+const buildGlobePoints = (recipes, lang) => {
+  const counts = {};
+  recipes.forEach((r) => {
+    if (CAT_GEO[r.category]) counts[r.category] = (counts[r.category] || 0) + 1;
+  });
+  const codes = Object.keys(counts).length ? Object.keys(counts) : Object.keys(CAT_GEO);
+  return codes.map((code) => ({
+    code,
+    count: counts[code] || 0,
+    name: catLabel(code, lang),
+    lat: CAT_GEO[code][0],
+    lng: CAT_GEO[code][1],
+  }));
+};
 const normalizeCat = (input) => {
   const s = (input || '').trim();
   if (!s) return '';
@@ -245,7 +281,7 @@ const App = () => {
   const [authErr, setAuthErr] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
 
-  const [tab, setTab] = useState('recipes');
+  const [tab, setTab] = useState('home');
   const [recipes, setRecipes] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [form, setForm] = useState(emptyRecipe);
@@ -474,12 +510,17 @@ const App = () => {
 
   if (!token) {
     return (
-      <div className="max-w-sm mx-auto p-6 mt-16 font-sans">
-        <div className="bg-white p-6 rounded shadow">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">{t.title}</h1>
-            {langButton}
+      <div className="min-h-screen bg-gray-900 font-sans text-white">
+        <div className="max-w-2xl mx-auto p-6">
+          <div className="flex justify-end pt-2">{langButton}</div>
+          <div className="text-center mt-4">
+            <h1 className="text-4xl font-bold">{t.title}</h1>
+            <p className="text-gray-300 mt-2">{t.tagline}</p>
           </div>
+          <Suspense fallback={<div style={{ height: 360 }} />}>
+            <GlobeView points={buildGlobePoints([], lang)} height={360} />
+          </Suspense>
+          <div className="bg-white text-gray-800 p-6 rounded-xl shadow-xl max-w-sm mx-auto relative -mt-4">
           <input
             value={authUser}
             onChange={(e) => setAuthUser(e.target.value)}
@@ -510,6 +551,7 @@ const App = () => {
               {t.register}
             </button>
           </div>
+          </div>
         </div>
       </div>
     );
@@ -535,7 +577,7 @@ const App = () => {
       </div>
 
       <div className="flex gap-2 mb-6">
-        {['recipes', 'plan', 'shopping', 'insights'].map((k) => (
+        {['home', 'recipes', 'plan', 'shopping', 'insights'].map((k) => (
           <button
             key={k}
             onClick={() => setTab(k)}
@@ -547,6 +589,23 @@ const App = () => {
           </button>
         ))}
       </div>
+
+      {tab === 'home' && (
+        <div className="bg-gray-900 rounded-xl p-4 shadow text-white">
+          <p className="font-bold">{t.tagline}</p>
+          <Suspense fallback={<div style={{ height: 420 }} className="flex items-center justify-center text-gray-400">{t.loading}</div>}>
+            <GlobeView
+              points={buildGlobePoints(recipes, lang)}
+              height={420}
+              onSelect={(code) => {
+                setCatFilter(code);
+                setTab('recipes');
+              }}
+            />
+          </Suspense>
+          <p className="text-gray-400 text-sm mt-1">{t.globeHint}</p>
+        </div>
+      )}
 
       {tab === 'recipes' && (
         <>
