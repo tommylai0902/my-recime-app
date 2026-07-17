@@ -5,8 +5,8 @@ import { getUserId } from './_utils.js';
 import { askGemini, recipeSchema, geminiError } from './_gemini.js';
 
 const prompts = {
-  zh: '以下係一個食譜網頁嘅內容。抽取出食譜，用繁體中文寫（材料連份量、簡短做法）：\n\n',
-  en: 'Below is the content of a recipe web page. Extract the recipe in English (ingredients with quantities, brief steps):\n\n',
+  zh: '以下係一個食譜網頁嘅內容。抽取出食譜，用繁體中文寫（材料連份量、簡短做法 — 每個步驟自成一行）：\n\n',
+  en: 'Below is the content of a recipe web page. Extract the recipe in English (ingredients with quantities, brief steps — one step per line):\n\n',
 };
 
 const decode = (s) =>

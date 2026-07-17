@@ -42,15 +42,19 @@ export default function GlobeView({ points, height = 420, onSelect }) {
           pointAltitude={(d) => 0.06 + (d.count / max) * 0.25}
           pointRadius={0.7}
           onPointClick={(d) => onSelect && onSelect(d.code)}
-          labelsData={points}
-          labelLat="lat"
-          labelLng="lng"
-          labelText={(d) => (d.count > 0 ? `${d.name} ${d.count}` : d.name)}
-          labelSize={1.6}
-          labelDotRadius={0.45}
-          labelColor={() => '#ffd166'}
-          labelAltitude={0.01}
-          onLabelClick={(d) => onSelect && onSelect(d.code)}
+          htmlElementsData={points}
+          htmlLat="lat"
+          htmlLng="lng"
+          htmlAltitude={0.02}
+          htmlElement={(d) => {
+            // 3D 文字引擎冇中文字型，用 HTML 標籤先顯示到中文
+            const el = document.createElement('div');
+            el.textContent = d.count > 0 ? `${d.name} ${d.count}` : d.name;
+            el.style.cssText =
+              'color:#ffd166;font-size:12px;font-weight:bold;text-shadow:0 0 4px #000,0 0 8px #000;cursor:pointer;transform:translate(-50%,-120%);white-space:nowrap;pointer-events:auto;';
+            el.onclick = () => onSelect && onSelect(d.code);
+            return el;
+          }}
         />
       )}
     </div>

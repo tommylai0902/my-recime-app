@@ -33,6 +33,9 @@ const STR = {
     tab_insights: '統計',
     tagline: '將你嘅食譜放上世界地圖',
     globeHint: '撳個標記即刻去嗰個菜系嘅食譜',
+    converter: '⚖️ 單位換算',
+    convAmount: '數量',
+    convNote: '＊g↔ml 視乎材料密度，記得揀返啱嘅材料',
     summaryTotal: '食譜總數',
     summaryTop: '最多食譜嘅分類',
     chartByCategory: '分類分佈',
@@ -107,6 +110,9 @@ const STR = {
     tab_insights: 'Insights',
     tagline: 'Your recipes on the world map',
     globeHint: 'Tap a marker to jump to that cuisine',
+    converter: '⚖️ Unit converter',
+    convAmount: 'Amount',
+    convNote: '* g↔ml depends on ingredient density — pick the right one',
     summaryTotal: 'Total recipes',
     summaryTop: 'Top category',
     chartByCategory: 'Recipes by category',
@@ -194,6 +200,19 @@ const CATS = [
   { code: 'other', zh: '其他', en: 'Other' },
 ];
 const catLabel = (v, lang) => (CATS.find((c) => c.code === v) || {})[lang] || v;
+
+// 單位換算：g↔ml 靠密度（g/ml），cup=240ml tbsp=15ml tsp=5ml
+const DENSITY = { water: 1, milk: 1.03, oil: 0.92, flour: 0.53, sugar: 0.85, rice: 0.85, butter: 0.95, honey: 1.42 };
+const CONV_TYPES = [
+  { code: 'water', zh: '水／湯', en: 'Water / liquid' },
+  { code: 'milk', zh: '奶', en: 'Milk' },
+  { code: 'oil', zh: '油', en: 'Oil' },
+  { code: 'flour', zh: '麵粉', en: 'Flour' },
+  { code: 'sugar', zh: '糖', en: 'Sugar' },
+  { code: 'rice', zh: '米', en: 'Rice' },
+  { code: 'butter', zh: '牛油', en: 'Butter' },
+  { code: 'honey', zh: '蜜糖', en: 'Honey' },
+];
 // 地球標記：有食譜就顯示數量，冇就全部菜系做裝飾
 const buildGlobePoints = (recipes, lang) => {
   const counts = {};
@@ -290,6 +309,9 @@ const App = () => {
   const [catFilter, setCatFilter] = useState('');
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
+  const [convVal, setConvVal] = useState('');
+  const [convUnit, setConvUnit] = useState('g');
+  const [convType, setConvType] = useState('water');
 
   const [weekStart, setWeekStart] = useState(getMonday(new Date()));
   const [plan, setPlan] = useState({});
@@ -461,7 +483,7 @@ const App = () => {
     const payload = {
       ...form,
       category: normalizeCat(form.category),
-      ingredients: form.ingredients.split(',').map(s => s.trim()),
+      ingredients: form.ingredients.split(/[,\n]/).map(s => s.trim()).filter(Boolean),
     };
     if (editId) {
       await axios.put(`/api/recipes/${editId}`, payload);
@@ -559,6 +581,20 @@ const App = () => {
 
   const cats = [...new Set(recipes.map((r) => r.category).filter(Boolean))];
   const shownRecipes = catFilter ? recipes.filter((r) => r.category === catFilter) : recipes;
+
+  const convNum = parseFloat(convVal);
+  let conv = null;
+  if (!isNaN(convNum)) {
+    const d = DENSITY[convType];
+    const ml =
+      convUnit === 'g' ? convNum / d
+      : convUnit === 'ml' ? convNum
+      : convUnit === 'cup' ? convNum * 240
+      : convUnit === 'tbsp' ? convNum * 15
+      : convNum * 5;
+    const r = (x, p = 1) => Math.round(x * 10 ** p) / 10 ** p;
+    conv = { g: r(ml * d), ml: r(ml), cup: r(ml / 240, 2), tbsp: r(ml / 15, 1), tsp: r(ml / 5, 1) };
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-6 font-sans">
@@ -685,24 +721,26 @@ const App = () => {
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 mb-1">{t.ingredients}</label>
-              <input
+              <textarea
                 name="ingredients"
                 placeholder={t.ingredients}
                 value={form.ingredients}
                 onChange={handleChange}
                 required
-                className="w-full p-2 border rounded"
+                rows={3}
+                className="w-full p-2 border rounded resize-y"
               />
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 mb-1">{t.description}</label>
-              <input
+              <textarea
                 name="description"
                 placeholder={t.description}
                 value={form.description}
                 onChange={handleChange}
                 required
-                className="w-full p-2 border rounded"
+                rows={5}
+                className="w-full p-2 border rounded resize-y"
               />
             </div>
             <div className="flex gap-2">
@@ -723,6 +761,35 @@ const App = () => {
               )}
             </div>
           </form>
+
+          <details className="mb-8 bg-white border rounded p-4 shadow">
+            <summary className="font-bold cursor-pointer">{t.converter}</summary>
+            <div className="flex gap-2 mt-3 flex-wrap items-center">
+              <input
+                type="number"
+                value={convVal}
+                onChange={(e) => setConvVal(e.target.value)}
+                placeholder={t.convAmount}
+                className="w-28 p-2 border rounded"
+              />
+              <select value={convUnit} onChange={(e) => setConvUnit(e.target.value)} className="p-2 border rounded">
+                {['g', 'ml', 'cup', 'tbsp', 'tsp'].map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+              <select value={convType} onChange={(e) => setConvType(e.target.value)} className="p-2 border rounded">
+                {CONV_TYPES.map((c) => (
+                  <option key={c.code} value={c.code}>{c[lang]}</option>
+                ))}
+              </select>
+            </div>
+            {conv && (
+              <p className="mt-3 text-gray-800 font-bold">
+                {conv.g} g ・ {conv.ml} ml ・ {conv.cup} cup ・ {conv.tbsp} tbsp ・ {conv.tsp} tsp
+              </p>
+            )}
+            <p className="text-gray-400 text-xs mt-2">{t.convNote}</p>
+          </details>
 
           {cats.length > 0 && (
             <div className="flex gap-2 flex-wrap mb-4">
@@ -749,7 +816,7 @@ const App = () => {
               <div key={recipe.id} className="bg-white border rounded p-4 mb-4 shadow">
                 <h2 className="text-lg font-bold">{recipe.name}</h2>
                 <p><strong>{t.categoryLabel}</strong>{catLabel(recipe.category, lang)}</p>
-                <p>{recipe.description}</p>
+                <p className="whitespace-pre-line">{recipe.description}</p>
                 <ul className="list-disc ml-6">
                   {Array.isArray(recipe.ingredients)
                     ? recipe.ingredients.map((item, idx) => <li key={idx}>{item}</li>)

@@ -52,7 +52,7 @@ export const recipeSchema = {
       description: '分類代碼（統一用英文代碼，前端會翻譯顯示）',
     },
     ingredients: { type: 'ARRAY', items: { type: 'STRING' }, description: '材料清單，每項包含份量' },
-    description: { type: 'STRING', description: '簡介 + 簡短做法步驟' },
+    description: { type: 'STRING', description: '簡介一段，然後做法步驟 — 每個步驟自成一行，用換行符分隔' },
   },
   required: ['name', 'category', 'ingredients', 'description'],
 };

@@ -3,8 +3,8 @@ import { getUserId } from './_utils.js';
 import { askGemini, recipeSchema, geminiError } from './_gemini.js';
 
 const prompts = {
-  zh: '認出呢張相入面嘅菜式，然後用繁體中文寫出佢嘅食譜（材料連份量、簡短做法）。',
-  en: 'Identify the dish in this photo, then write its recipe in English (ingredients with quantities, brief steps).',
+  zh: '認出呢張相入面嘅菜式，然後用繁體中文寫出佢嘅食譜（材料連份量、簡短做法 — 每個步驟自成一行）。',
+  en: 'Identify the dish in this photo, then write its recipe in English (ingredients with quantities, brief steps — one step per line).',
 };
 
 export default async function handler(req, res) {
