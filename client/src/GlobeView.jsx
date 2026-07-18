@@ -24,8 +24,13 @@ export default function GlobeView({ points, height = 420, onSelect }) {
 
   const max = Math.max(...points.map((p) => p.count), 1);
 
+  const setSpin = (on) => {
+    const g = globeRef.current;
+    if (g) g.controls().autoRotate = on;
+  };
+
   return (
-    <div ref={wrapRef}>
+    <div ref={wrapRef} onMouseEnter={() => setSpin(false)} onMouseLeave={() => setSpin(true)}>
       {width > 0 && (
         <Globe
           ref={globeRef}

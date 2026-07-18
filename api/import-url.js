@@ -25,18 +25,54 @@ function metaContent(html, prop) {
   return c ? decode(c[1]) : '';
 }
 
-// IG caption 本身已經寫晒材料（- 開頭）同步驟（1. 開頭）嘅話，直接用原文，唔使 AI
+// IG caption 本身已經寫晒材料同步驟嘅話，直接用原文，唔使 AI
 function parseCaptionRecipe(og) {
   // IG og:description 格式：`995K likes, 123 comments - user on Jan 1: "caption內文"`
   const text = og.replace(/^[^"“]*["“]\s*/, '').replace(/["”]\s*$/, '');
-  const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
-  const ingredients = lines
-    .filter((l) => /^[-•*]\s*\S/.test(l))
-    .map((l) => l.replace(/^[-•*]\s*/, ''));
-  const steps = lines.filter((l) => /^\d+[.)]\s*\S/.test(l));
+  const rawLines = text.split('\n').map((s) => s.trim()).filter(Boolean);
+  if (rawLines.length < 5) return null;
+
+  const isItem = (l) => /^[-•*]\s*\S/.test(l) || /^\d+[.)]\s*\S/.test(l);
+
+  // 斬做一節節：非列點行 = 小標題（例如 ingredients / Seasoning / Recipe）
+  const sections = [];
+  let cur = { header: '', items: [] };
+  for (const l of rawLines) {
+    if (isItem(l)) {
+      cur.items.push(l);
+    } else {
+      if (cur.header || cur.items.length) sections.push(cur);
+      cur = { header: l, items: [] };
+    }
+  }
+  if (cur.header || cur.items.length) sections.push(cur);
+
+  const stripMark = (l) => l.replace(/^[-•*]\s*/, '');
+  const ingHeader = sections.findIndex(
+    (s) => /ingredient|材料|食材/i.test(s.header) && s.items.length >= 3
+  );
+
+  if (ingHeader !== -1) {
+    // 有「ingredients」小標題：淨攞嗰節做材料，之後全部節（連小標題）保留做描述
+    const ingredients = sections[ingHeader].items.map(stripMark);
+    const stepSections = sections.slice(ingHeader + 1).filter((s) => s.items.length);
+    if (stepSections.reduce((n, s) => n + s.items.length, 0) < 2) return null;
+    const description = stepSections
+      .map((s) =>
+        [s.header, ...s.items.map((l) => l.replace(/^[-•*]\s*/, '• '))].filter(Boolean).join('\n')
+      )
+      .join('\n\n');
+    const nameSec = sections.slice(0, ingHeader).find((s) => s.header && !s.items.length);
+    const name = ((nameSec && nameSec.header) || rawLines[0]).replace(/[#@].*$/, '').trim().slice(0, 80);
+    return { name, category: '', ingredients, description };
+  }
+
+  // 冇小標題：舊式簡單格式 — 列點 = 材料、編號 = 步驟
+  const ingredients = rawLines.filter((l) => /^[-•*]\s*\S/.test(l)).map(stripMark);
+  const steps = rawLines.filter((l) => /^\d+[.)]\s*\S/.test(l));
   if (ingredients.length < 3 || steps.length < 2) return null; // 唔似完整食譜，交返俾 AI
   return {
-    name: (lines[0] || '').replace(/[#@].*$/, '').trim().slice(0, 80),
+    name: (rawLines[0] || '').replace(/[#@].*$/, '').trim().slice(0, 80),
     category: '',
     ingredients,
     description: steps.join('\n'),
