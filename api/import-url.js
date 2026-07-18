@@ -12,12 +12,12 @@ const prompts = {
 const decode = (s) =>
   s
     .replace(/&quot;/g, '"')
-    .replace(/&#x27;/gi, "'")
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&nbsp;/g, ' ')
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n));
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16))) // 韓文等非拉丁字多數用 hex entity
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)));
 
 function metaContent(html, prop) {
   const tag = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]*>`, 'i'));
@@ -48,14 +48,17 @@ function parseCaptionRecipe(og) {
   if (cur.header || cur.items.length) sections.push(cur);
 
   const stripMark = (l) => l.replace(/^[-•*]\s*/, '');
-  const ingHeader = sections.findIndex(
-    (s) => /ingredient|材料|食材/i.test(s.header) && s.items.length >= 3
-  );
+  const ingRe = /ingredient|材料|食材|재료/i;
+  const ingHeader = sections.findIndex((s) => ingRe.test(s.header) && s.items.length >= 3);
 
   if (ingHeader !== -1) {
     // 有「ingredients」小標題：淨攞嗰節做材料，之後全部節（連小標題）保留做描述
     const ingredients = sections[ingHeader].items.map(stripMark);
-    const stepSections = sections.slice(ingHeader + 1).filter((s) => s.items.length);
+    // 再撞到另一個 ingredients 標題 = 另一語言版本重新開始，喺度截斷
+    let rest = sections.slice(ingHeader + 1);
+    const dupIdx = rest.findIndex((s) => ingRe.test(s.header));
+    if (dupIdx !== -1) rest = rest.slice(0, dupIdx);
+    const stepSections = rest.filter((s) => s.items.length);
     if (stepSections.reduce((n, s) => n + s.items.length, 0) < 2) return null;
     const description = stepSections
       .map((s) =>
