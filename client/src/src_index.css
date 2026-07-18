@@ -2,3 +2,8 @@
      @tailwind base;
      @tailwind components;
      @tailwind utilities;
+
+     /* 深色模式下 input/select/textarea 等原生控件自動轉深色 */
+     .dark {
+       color-scheme: dark;
+     }

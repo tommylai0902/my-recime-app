@@ -25,6 +25,24 @@ function metaContent(html, prop) {
   return c ? decode(c[1]) : '';
 }
 
+// IG caption 本身已經寫晒材料（- 開頭）同步驟（1. 開頭）嘅話，直接用原文，唔使 AI
+function parseCaptionRecipe(og) {
+  // IG og:description 格式：`995K likes, 123 comments - user on Jan 1: "caption內文"`
+  const text = og.replace(/^[^"“]*["“]\s*/, '').replace(/["”]\s*$/, '');
+  const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
+  const ingredients = lines
+    .filter((l) => /^[-•*]\s*\S/.test(l))
+    .map((l) => l.replace(/^[-•*]\s*/, ''));
+  const steps = lines.filter((l) => /^\d+[.)]\s*\S/.test(l));
+  if (ingredients.length < 3 || steps.length < 2) return null; // 唔似完整食譜，交返俾 AI
+  return {
+    name: (lines[0] || '').replace(/[#@].*$/, '').trim().slice(0, 80),
+    category: '',
+    ingredients,
+    description: steps.join('\n'),
+  };
+}
+
 function fromJsonLd(html) {
   for (const [, raw] of html.matchAll(
     /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
@@ -83,6 +101,12 @@ export default async function handler(req, res) {
   // fallback：抽頁面文字俾 Gemini — og:description 行先（IG caption 喺呢度），body 文字跟尾
   const title = metaContent(html, 'og:title') || (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || '');
   const og = metaContent(html, 'og:description');
+
+  // caption 已經係完整食譜 → 直接用原文（即時、零 AI、保留原作者寫法）
+  if (og) {
+    const parsed = parseCaptionRecipe(og);
+    if (parsed) return res.status(200).json(parsed);
+  }
   const body = decode(
     html
       .replace(/<script[\s\S]*?<\/script>/gi, ' ')

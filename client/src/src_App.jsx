@@ -267,6 +267,7 @@ const applyToken = (token) => {
   else delete axios.defaults.headers.common.Authorization;
 };
 applyToken(localStorage.getItem('token'));
+if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
 
 const getMonday = (d) => {
   const x = new Date(d);
@@ -294,6 +295,13 @@ const loadJson = (key, fallback) => {
 const App = () => {
   const [lang, setLang] = useState(localStorage.getItem('lang') || 'zh');
   const t = STR[lang];
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('theme', next);
+    document.documentElement.classList.toggle('dark', next === 'dark');
+  };
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [authUser, setAuthUser] = useState('');
   const [authPwd, setAuthPwd] = useState('');
@@ -524,7 +532,7 @@ const App = () => {
     <button
       type="button"
       onClick={toggleLang}
-      className="border border-gray-400 text-gray-600 text-sm font-bold py-1 px-3 rounded hover:bg-gray-100"
+      className="border border-gray-400 text-gray-600 dark:text-gray-300 text-sm font-bold py-1 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
     >
       {lang === 'zh' ? 'EN' : '中'}
     </button>
@@ -542,19 +550,19 @@ const App = () => {
           <Suspense fallback={<div style={{ height: 360 }} />}>
             <GlobeView points={buildGlobePoints([], lang)} height={360} />
           </Suspense>
-          <div className="bg-white text-gray-800 p-6 rounded-xl shadow-xl max-w-sm mx-auto relative -mt-4">
+          <div className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 p-6 rounded-xl shadow-xl max-w-sm mx-auto relative -mt-4">
           <input
             value={authUser}
             onChange={(e) => setAuthUser(e.target.value)}
             placeholder={t.username}
-            className="w-full p-2 border rounded mb-3"
+            className="w-full p-2 border dark:border-gray-600 rounded mb-3"
           />
           <input
             type="password"
             value={authPwd}
             onChange={(e) => setAuthPwd(e.target.value)}
             placeholder={t.password}
-            className="w-full p-2 border rounded mb-4"
+            className="w-full p-2 border dark:border-gray-600 rounded mb-4"
           />
           {authErr && <p className="text-red-600 text-sm mb-3">{authErr}</p>}
           <div className="flex gap-2">
@@ -597,15 +605,23 @@ const App = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6 font-sans">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans">
+    <div className="max-w-2xl mx-auto p-6">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">{t.title}</h1>
         <div className="flex gap-2 items-center">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="border border-gray-400 text-sm font-bold py-1 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
           {langButton}
           <button
             type="button"
             onClick={logout}
-            className="border border-red-400 text-red-500 text-sm font-bold py-1 px-3 rounded hover:bg-red-50"
+            className="border border-red-400 text-red-500 text-sm font-bold py-1 px-3 rounded hover:bg-red-50 dark:hover:bg-gray-700"
           >
             {t.logout}
           </button>
@@ -618,7 +634,7 @@ const App = () => {
             key={k}
             onClick={() => setTab(k)}
             className={`flex-1 py-2 rounded font-bold text-sm sm:text-base ${
-              tab === k ? 'bg-orange-500 text-white' : 'bg-white text-gray-600 border'
+              tab === k ? 'bg-orange-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border'
             }`}
           >
             {t['tab_' + k]}
@@ -650,7 +666,7 @@ const App = () => {
               value={importUrl}
               onChange={(e) => setImportUrl(e.target.value)}
               placeholder={t.importPh}
-              className="flex-1 p-2 border rounded"
+              className="flex-1 p-2 border dark:border-gray-600 rounded"
             />
             <button
               type="button"
@@ -671,27 +687,27 @@ const App = () => {
               <input type="file" accept="image/*" onChange={handleScan} disabled={scanning} className="hidden" />
             </label>
           </div>
-          <form onSubmit={handleSubmit} className="mb-8 bg-white p-6 rounded shadow">
+          <form onSubmit={handleSubmit} className="mb-8 bg-white dark:bg-gray-800 p-6 rounded shadow">
             <div className="mb-4">
-              <label className="block text-gray-700 mb-1">{t.name}</label>
+              <label className="block text-gray-700 dark:text-gray-300 mb-1">{t.name}</label>
               <input
                 name="name"
                 placeholder={t.name}
                 value={form.name}
                 onChange={handleChange}
                 required
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border dark:border-gray-600 rounded"
               />
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700 mb-1">{t.category}</label>
+              <label className="block text-gray-700 dark:text-gray-300 mb-1">{t.category}</label>
               <input
                 name="category"
                 placeholder={t.category}
                 value={form.category}
                 onChange={handleChange}
                 list="cat-options"
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border dark:border-gray-600 rounded"
               />
               <datalist id="cat-options">
                 {[...new Set([...CATS.map((c) => c[lang]), ...cats.map((v) => catLabel(v, lang))])].map((c) => (
@@ -700,27 +716,27 @@ const App = () => {
               </datalist>
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700 mb-1">{t.imageUrl}</label>
+              <label className="block text-gray-700 dark:text-gray-300 mb-1">{t.imageUrl}</label>
               <input
                 name="image"
                 placeholder={t.imageUrl}
                 value={form.image}
                 onChange={handleChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border dark:border-gray-600 rounded"
               />
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700 mb-1">{t.recipeUrl}</label>
+              <label className="block text-gray-700 dark:text-gray-300 mb-1">{t.recipeUrl}</label>
               <input
                 name="url"
                 placeholder={t.recipeUrl}
                 value={form.url}
                 onChange={handleChange}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border dark:border-gray-600 rounded"
               />
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700 mb-1">{t.ingredients}</label>
+              <label className="block text-gray-700 dark:text-gray-300 mb-1">{t.ingredients}</label>
               <textarea
                 name="ingredients"
                 placeholder={t.ingredients}
@@ -728,11 +744,11 @@ const App = () => {
                 onChange={handleChange}
                 required
                 rows={3}
-                className="w-full p-2 border rounded resize-y"
+                className="w-full p-2 border dark:border-gray-600 rounded resize-y"
               />
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700 mb-1">{t.description}</label>
+              <label className="block text-gray-700 dark:text-gray-300 mb-1">{t.description}</label>
               <textarea
                 name="description"
                 placeholder={t.description}
@@ -740,7 +756,7 @@ const App = () => {
                 onChange={handleChange}
                 required
                 rows={5}
-                className="w-full p-2 border rounded resize-y"
+                className="w-full p-2 border dark:border-gray-600 rounded resize-y"
               />
             </div>
             <div className="flex gap-2">
@@ -762,7 +778,7 @@ const App = () => {
             </div>
           </form>
 
-          <details className="mb-8 bg-white border rounded p-4 shadow">
+          <details className="mb-8 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 shadow">
             <summary className="font-bold cursor-pointer">{t.converter}</summary>
             <div className="flex gap-2 mt-3 flex-wrap items-center">
               <input
@@ -770,21 +786,21 @@ const App = () => {
                 value={convVal}
                 onChange={(e) => setConvVal(e.target.value)}
                 placeholder={t.convAmount}
-                className="w-28 p-2 border rounded"
+                className="w-28 p-2 border dark:border-gray-600 rounded"
               />
-              <select value={convUnit} onChange={(e) => setConvUnit(e.target.value)} className="p-2 border rounded">
+              <select value={convUnit} onChange={(e) => setConvUnit(e.target.value)} className="p-2 border dark:border-gray-600 rounded">
                 {['g', 'ml', 'cup', 'tbsp', 'tsp'].map((u) => (
                   <option key={u} value={u}>{u}</option>
                 ))}
               </select>
-              <select value={convType} onChange={(e) => setConvType(e.target.value)} className="p-2 border rounded">
+              <select value={convType} onChange={(e) => setConvType(e.target.value)} className="p-2 border dark:border-gray-600 rounded">
                 {CONV_TYPES.map((c) => (
                   <option key={c.code} value={c.code}>{c[lang]}</option>
                 ))}
               </select>
             </div>
             {conv && (
-              <p className="mt-3 text-gray-800 font-bold">
+              <p className="mt-3 text-gray-800 dark:text-gray-100 font-bold">
                 {conv.g} g ・ {conv.ml} ml ・ {conv.cup} cup ・ {conv.tbsp} tbsp ・ {conv.tsp} tsp
               </p>
             )}
@@ -797,8 +813,8 @@ const App = () => {
                 <button
                   key={c || '__all'}
                   onClick={() => setCatFilter(c)}
-                  className={`text-sm font-bold py-1 px-3 rounded-full border ${
-                    catFilter === c ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600'
+                  className={`text-sm font-bold py-1 px-3 rounded-full border dark:border-gray-600 ${
+                    catFilter === c ? 'bg-orange-500 text-white border-orange-500' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'
                   }`}
                 >
                   {c ? catLabel(c, lang) : t.all}
@@ -813,7 +829,7 @@ const App = () => {
             <p>{t.empty}</p>
           ) : (
             shownRecipes.map((recipe) => (
-              <div key={recipe.id} className="bg-white border rounded p-4 mb-4 shadow">
+              <div key={recipe.id} className="bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 mb-4 shadow">
                 <h2 className="text-lg font-bold">{recipe.name}</h2>
                 <p><strong>{t.categoryLabel}</strong>{catLabel(recipe.category, lang)}</p>
                 <p className="whitespace-pre-line">{recipe.description}</p>
@@ -859,7 +875,7 @@ const App = () => {
           <div className="flex justify-between items-center mb-4">
             <button
               onClick={() => setWeekStart(addDays(weekStart, -7))}
-              className="bg-white border font-bold py-1 px-4 rounded hover:bg-gray-100"
+              className="bg-white dark:bg-gray-800 border font-bold py-1 px-4 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               ‹
             </button>
@@ -868,7 +884,7 @@ const App = () => {
             </span>
             <button
               onClick={() => setWeekStart(addDays(weekStart, 7))}
-              className="bg-white border font-bold py-1 px-4 rounded hover:bg-gray-100"
+              className="bg-white dark:bg-gray-800 border font-bold py-1 px-4 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               ›
             </button>
@@ -878,21 +894,21 @@ const App = () => {
             const date = fmtDate(day);
             const isToday = date === fmtDate(new Date());
             return (
-              <div key={date} className={`bg-white border rounded p-4 mb-3 shadow ${isToday ? 'border-orange-400 border-2' : ''}`}>
+              <div key={date} className={`bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 mb-3 shadow ${isToday ? 'border-orange-400 border-2' : ''}`}>
                 <p className="font-bold mb-2">
-                  {DAYS[lang][i]} <span className="text-gray-500">{shortDate(day)}</span>
+                  {DAYS[lang][i]} <span className="text-gray-500 dark:text-gray-400">{shortDate(day)}</span>
                 </p>
                 {MEALS.map((meal) => {
                   const entry = plan[`${date}|${meal}`];
                   return (
                     <div key={meal} className="flex items-center gap-2 mb-1">
-                      <span className="w-14 text-sm text-gray-500">{t[meal]}</span>
+                      <span className="w-14 text-sm text-gray-500 dark:text-gray-400">{t[meal]}</span>
                       {entry ? (
                         <>
                           <span className="flex-1">{entry.name}</span>
                           <button
                             onClick={() => clearSlot(date, meal)}
-                            className="text-red-500 font-bold px-2 hover:bg-red-50 rounded"
+                            className="text-red-500 font-bold px-2 hover:bg-red-50 dark:hover:bg-gray-700 rounded"
                           >
                             ✕
                           </button>
@@ -901,7 +917,7 @@ const App = () => {
                         <select
                           value=""
                           onChange={(e) => setSlot(date, meal, e.target.value)}
-                          className="flex-1 p-1 border rounded text-gray-500 text-sm"
+                          className="flex-1 p-1 border dark:border-gray-600 rounded text-gray-500 dark:text-gray-400 text-sm"
                         >
                           <option value="">{t.choose}</option>
                           {recipes.map((r) => (
@@ -920,8 +936,8 @@ const App = () => {
 
       {tab === 'shopping' && (
         <>
-          <p className="text-gray-500 text-sm mb-3">{t.shopHint}</p>
-          <div className="bg-white border rounded p-4 mb-4 shadow">
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-3">{t.shopHint}</p>
+          <div className="bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 mb-4 shadow">
             {recipes.map((r) => (
               <label key={r.id} className="flex items-center gap-2 mb-1 cursor-pointer">
                 <input
@@ -941,11 +957,11 @@ const App = () => {
             </button>
           </div>
           {shopList && (
-            <div className="bg-white border rounded p-4 shadow">
+            <div className="bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 shadow">
               <div className="flex justify-end mb-2">
                 <button
                   onClick={() => { setShopList(null); setShopChecked({}); }}
-                  className="text-sm text-red-500 font-bold hover:bg-red-50 py-1 px-3 rounded"
+                  className="text-sm text-red-500 font-bold hover:bg-red-50 dark:hover:bg-gray-700 py-1 px-3 rounded"
                 >
                   {t.clearList}
                 </button>
@@ -997,7 +1013,7 @@ const App = () => {
               <p className="mb-4 font-bold">
                 {t.summaryTotal}：{total} ・ {t.summaryTop}：{catData[0].name}（{catData[0].value}）
               </p>
-              <div className="bg-white border rounded p-4 mb-4 shadow">
+              <div className="bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 mb-4 shadow">
                 <p className="font-bold mb-2">{t.chartByCategory}</p>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -1024,7 +1040,7 @@ const App = () => {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="bg-white border rounded p-4 mb-4 shadow">
+              <div className="bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 mb-4 shadow">
                 <p className="font-bold mb-2">{t.chartIngredients}</p>
                 <ResponsiveContainer width="100%" height={Math.max(200, insights.ingredientCounts.length * 36)}>
                   <BarChart data={insights.ingredientCounts} layout="vertical" margin={{ left: 8, right: 24 }}>
@@ -1037,7 +1053,7 @@ const App = () => {
               </div>
               {insights.nutrition && insights.nutrition.length > 0 && (
                 <>
-                  <div className="bg-white border rounded p-4 mb-4 shadow">
+                  <div className="bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 mb-4 shadow">
                     <p className="font-bold mb-2">{t.chartCalories}</p>
                     <ResponsiveContainer width="100%" height={Math.max(200, insights.nutrition.length * 36)}>
                       <BarChart data={insights.nutrition} layout="vertical" margin={{ left: 8, right: 24 }}>
@@ -1048,7 +1064,7 @@ const App = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="bg-white border rounded p-4 shadow">
+                  <div className="bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 shadow">
                     <p className="font-bold mb-2">{t.chartMacros}</p>
                     <ResponsiveContainer width="100%" height={Math.max(200, insights.nutrition.length * 36)}>
                       <BarChart data={insights.nutrition} layout="vertical" margin={{ left: 8, right: 24 }}>
@@ -1069,6 +1085,7 @@ const App = () => {
           );
         })()
       )}
+    </div>
     </div>
   );
 };
