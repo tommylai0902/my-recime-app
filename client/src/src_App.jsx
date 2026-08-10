@@ -540,34 +540,21 @@ const App = () => {
     }
   };
 
-  // 喺食譜詳情入面單獨換縮圖：存新相 → 帶埋現有資料 PUT 返個食譜（後端會自動刪舊相）
-  const handleChangeThumbnail = (e) => {
+  // 表單入面（新增/編輯都用得）上載相片做縮圖：先裁做正方形，確定先真正上載，
+  // 淨係填返 form.image，實際儲存要撳「新增/更新食譜」先算數
+  const handleFormPhotoPick = (e) => {
     const file = e.target.files[0];
     e.target.value = '';
-    if (!file || !viewRecipe) return;
-    setCropFile(file); // 先裁做正方形，撳確定先真正上載
+    if (!file) return;
+    setCropFile(file);
   };
 
-  const handleCropConfirm = async (image) => {
+  const handleFormCropConfirm = async (image) => {
     setCropFile(null);
-    if (!viewRecipe) return;
     setThumbBusy(true);
     try {
       const { data: uploaded } = await axios.post('/api/upload-image', { image, media_type: 'image/jpeg' });
-      const { data: updated } = await axios.put(`/api/recipes/${viewRecipe.id}`, {
-        name: viewRecipe.name,
-        description: viewRecipe.description,
-        ingredients: viewRecipe.ingredients,
-        image: uploaded.url,
-        url: viewRecipe.url,
-        category: viewRecipe.category,
-        prep_minutes: viewRecipe.prep_minutes,
-        cook_minutes: viewRecipe.cook_minutes,
-        servings: viewRecipe.servings,
-        notes: viewRecipe.notes,
-      });
-      setViewRecipe(updated);
-      fetchRecipes();
+      setForm((f) => ({ ...f, image: uploaded.url }));
     } catch (err) {
       alert(t.thumbFailed + '：' + errMsg(err));
     } finally {
@@ -897,6 +884,10 @@ const App = () => {
                 className="w-full p-2 border dark:border-gray-600 rounded"
               />
               {!editId && <p className="text-xs text-gray-400 mt-1">{t.imageRequiredHint}</p>}
+              <label className={`inline-block mt-2 text-xs font-bold py-1 px-3 rounded-full border dark:border-gray-600 cursor-pointer ${thumbBusy ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                {thumbBusy ? t.thumbUpdating : t.changeThumbnail}
+                <input type="file" accept="image/*" onChange={handleFormPhotoPick} disabled={thumbBusy} className="hidden" />
+              </label>
             </div>
             <div className="mb-4 grid grid-cols-3 gap-2">
               <div>
@@ -997,35 +988,6 @@ const App = () => {
           </>
           )}
 
-          <details className="mb-8 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 shadow">
-            <summary className="font-bold cursor-pointer">{t.converter}</summary>
-            <div className="flex gap-2 mt-3 flex-wrap items-center">
-              <input
-                type="number"
-                value={convVal}
-                onChange={(e) => setConvVal(e.target.value)}
-                placeholder={t.convAmount}
-                className="w-28 p-2 border dark:border-gray-600 rounded"
-              />
-              <select value={convUnit} onChange={(e) => setConvUnit(e.target.value)} className="p-2 border dark:border-gray-600 rounded">
-                {['g', 'ml', 'cup', 'tbsp', 'tsp'].map((u) => (
-                  <option key={u} value={u}>{u}</option>
-                ))}
-              </select>
-              <select value={convType} onChange={(e) => setConvType(e.target.value)} className="p-2 border dark:border-gray-600 rounded">
-                {CONV_TYPES.map((c) => (
-                  <option key={c.code} value={c.code}>{c[lang]}</option>
-                ))}
-              </select>
-            </div>
-            {conv && (
-              <p className="mt-3 text-gray-800 dark:text-gray-100 font-bold">
-                {conv.g} g ・ {conv.ml} ml ・ {conv.cup} cup ・ {conv.tbsp} tbsp ・ {conv.tsp} tsp
-              </p>
-            )}
-            <p className="text-gray-400 text-xs mt-2">{t.convNote}</p>
-          </details>
-
           {cats.length > 0 && (
             <div className="flex gap-2 flex-wrap mb-4">
               {['', ...cats].map((c) => (
@@ -1091,13 +1053,37 @@ const App = () => {
                 >
                   &times;
                 </button>
-                {viewRecipe.image && (
-                  <img src={viewRecipe.image} alt={viewRecipe.name} className="w-full aspect-square object-cover rounded mb-2" />
-                )}
-                <label className={`inline-block text-xs font-bold py-1 px-3 rounded-full border dark:border-gray-600 cursor-pointer mb-3 ${thumbBusy ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
-                  {thumbBusy ? t.thumbUpdating : t.changeThumbnail}
-                  <input type="file" accept="image/*" onChange={handleChangeThumbnail} disabled={thumbBusy} className="hidden" />
-                </label>
+                <div className="relative mb-3">
+                  {viewRecipe.image ? (
+                    <img src={viewRecipe.image} alt={viewRecipe.name} className="w-full aspect-square object-cover rounded" />
+                  ) : (
+                    <div className="w-full aspect-square flex items-center justify-center rounded bg-gradient-to-br from-orange-300 to-orange-500 dark:from-gray-600 dark:to-gray-800">
+                      <span className="text-5xl">{CAT_EMOJI[viewRecipe.category] || '🍽️'}</span>
+                    </div>
+                  )}
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <button
+                      onClick={() => {
+                        const r = viewRecipe;
+                        setViewRecipe(null);
+                        handleEdit(r);
+                      }}
+                      aria-label={t.edit}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (await handleDelete(viewRecipe.id)) setViewRecipe(null);
+                      }}
+                      aria-label={t.del}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-red-600 text-white"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
                 <h2 className="text-lg font-bold">{viewRecipe.name}</h2>
                 {catLabel(viewRecipe.category, lang) && (
                   <span className="inline-block bg-orange-100 dark:bg-gray-700 text-orange-700 dark:text-orange-300 text-xs font-bold px-2 py-1 rounded-full mt-1">
@@ -1131,10 +1117,42 @@ const App = () => {
                 {detailTab === 'steps' && (
                   <p className="whitespace-pre-line">{formatSteps(viewRecipe.description)}</p>
                 )}
-                {detailTab === 'ingredients' && Array.isArray(viewRecipe.ingredients) && (
-                  <ul className="list-disc ml-6">
-                    {viewRecipe.ingredients.map((item, idx) => <li key={idx}>{item}</li>)}
-                  </ul>
+                {detailTab === 'ingredients' && (
+                  <>
+                    {Array.isArray(viewRecipe.ingredients) && (
+                      <ul className="list-disc ml-6">
+                        {viewRecipe.ingredients.map((item, idx) => <li key={idx}>{item}</li>)}
+                      </ul>
+                    )}
+                    <details className="mt-4 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded p-3">
+                      <summary className="font-bold cursor-pointer text-sm">{t.converter}</summary>
+                      <div className="flex gap-2 mt-3 flex-wrap items-center">
+                        <input
+                          type="number"
+                          value={convVal}
+                          onChange={(e) => setConvVal(e.target.value)}
+                          placeholder={t.convAmount}
+                          className="w-24 p-2 border dark:border-gray-600 rounded"
+                        />
+                        <select value={convUnit} onChange={(e) => setConvUnit(e.target.value)} className="p-2 border dark:border-gray-600 rounded">
+                          {['g', 'ml', 'cup', 'tbsp', 'tsp'].map((u) => (
+                            <option key={u} value={u}>{u}</option>
+                          ))}
+                        </select>
+                        <select value={convType} onChange={(e) => setConvType(e.target.value)} className="p-2 border dark:border-gray-600 rounded">
+                          {CONV_TYPES.map((c) => (
+                            <option key={c.code} value={c.code}>{c[lang]}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {conv && (
+                        <p className="mt-3 text-gray-800 dark:text-gray-100 font-bold text-sm">
+                          {conv.g} g ・ {conv.ml} ml ・ {conv.cup} cup ・ {conv.tbsp} tbsp ・ {conv.tsp} tsp
+                        </p>
+                      )}
+                      <p className="text-gray-400 text-xs mt-2">{t.convNote}</p>
+                    </details>
+                  </>
                 )}
                 {detailTab === 'notes' && (
                   <>
@@ -1149,26 +1167,6 @@ const App = () => {
                   </>
                 )}
 
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={() => {
-                      const r = viewRecipe;
-                      setViewRecipe(null);
-                      handleEdit(r);
-                    }}
-                    className="bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-1 px-3 rounded"
-                  >
-                    {t.edit}
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (await handleDelete(viewRecipe.id)) setViewRecipe(null);
-                    }}
-                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded"
-                  >
-                    {t.del}
-                  </button>
-                </div>
               </div>
             </>
           )}
@@ -1176,7 +1174,7 @@ const App = () => {
           <SquareCrop
             file={cropFile}
             onCancel={() => setCropFile(null)}
-            onConfirm={handleCropConfirm}
+            onConfirm={handleFormCropConfirm}
             title={t.cropTitle}
             cancelLabel={t.cropCancel}
             confirmLabel={t.cropConfirm}
