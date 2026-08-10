@@ -233,7 +233,7 @@ const CAT_EMOJI = {
 // 部分食譜（尤其舊掃描）成段做法冧埋一齊冇換行；偵測遞增編號步驟（1. 2. 3.…）自動拆行顯示
 const formatSteps = (text) => {
   if (!text) return text;
-  const re = /(^|[。.!?！？\n])\s*(\d{1,2})[.、)]\s*/g;
+  const re = /(^|[。.!?！？\n:：])\s*(\d{1,2})[.、)]\s*/g;
   let expected = 1;
   const marks = [];
   let m;
