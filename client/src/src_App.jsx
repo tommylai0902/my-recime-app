@@ -95,7 +95,11 @@ const STR = {
     description: '描述',
     stepsHeading: '做法',
     notesHeading: '備注',
-    notesPh: '備注（可選）：小貼士、變化、下次改進嘅地方⋯',
+    addNote: '➕ 加備注',
+    saveNote: '儲存',
+    cancelNote: '取消',
+    noteText: '寫低你今次改良嘅心得⋯',
+    noNotes: '仲未有備注，下次改良食譜就記低啦！',
     add: '新增食譜',
     update: '更新食譜',
     cancelEdit: '取消編輯',
@@ -198,7 +202,11 @@ const STR = {
     description: 'Description',
     stepsHeading: 'Method',
     notesHeading: 'Notes',
-    notesPh: 'Notes (optional): tips, variations, what to change next time…',
+    addNote: '➕ Add note',
+    saveNote: 'Save',
+    cancelNote: 'Cancel',
+    noteText: 'Jot down what you learned this time…',
+    noNotes: 'No notes yet — jot one down next time you improve this recipe!',
     add: 'Add recipe',
     update: 'Update recipe',
     cancelEdit: 'Cancel edit',
@@ -326,7 +334,6 @@ const emptyRecipe = {
   prep_minutes: '',
   cook_minutes: '',
   servings: '',
-  notes: '',
 };
 
 // 縮到最長邊 1024px 再轉 base64，避免 request body 過大
@@ -406,6 +413,9 @@ const App = () => {
   const [detailTab, setDetailTab] = useState('steps');
   const [thumbBusy, setThumbBusy] = useState(false);
   const [cropFile, setCropFile] = useState(null);
+  const [addingNote, setAddingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [noteBusy, setNoteBusy] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
   const [convVal, setConvVal] = useState('');
@@ -574,6 +584,39 @@ const App = () => {
     }
   };
 
+  // 加一條有日期嘅備注：帶埋 viewRecipe 其餘欄位一齊 PUT 返（後端會保留除 notes 外嘅其他欄位不變）
+  const handleAddNote = async () => {
+    const text = noteDraft.trim();
+    if (!text || !viewRecipe) return;
+    setNoteBusy(true);
+    try {
+      const newNotes = [
+        { date: new Date().toISOString().slice(0, 10), text },
+        ...(Array.isArray(viewRecipe.notes) ? viewRecipe.notes : []),
+      ];
+      const { data: updated } = await axios.put(`/api/recipes/${viewRecipe.id}`, {
+        name: viewRecipe.name,
+        description: viewRecipe.description,
+        ingredients: viewRecipe.ingredients,
+        image: viewRecipe.image,
+        url: viewRecipe.url,
+        category: viewRecipe.category,
+        prep_minutes: viewRecipe.prep_minutes,
+        cook_minutes: viewRecipe.cook_minutes,
+        servings: viewRecipe.servings,
+        notes: newNotes,
+      });
+      setViewRecipe(updated);
+      setNoteDraft('');
+      setAddingNote(false);
+      fetchRecipes();
+    } catch (err) {
+      alert(errMsg(err));
+    } finally {
+      setNoteBusy(false);
+    }
+  };
+
   const handleImport = async () => {
     if (!importUrl.trim()) return;
     setImporting(true);
@@ -633,8 +676,10 @@ const App = () => {
 
   const handleEdit = recipe => {
     setTab('recipes');
+    // notes 唔喺表單度改（有自己嘅日誌式流程），刻意由 spread 剔走，唔好帶去 PUT payload
+    const { notes: _notes, ...recipeFields } = recipe;
     setForm({
-      ...recipe,
+      ...recipeFields,
       category: catLabel(recipe.category, lang),
       ingredients: Array.isArray(recipe.ingredients)
         ? recipe.ingredients.join(', ')
@@ -642,7 +687,6 @@ const App = () => {
       prep_minutes: Number.isFinite(recipe.prep_minutes) ? String(recipe.prep_minutes) : '',
       cook_minutes: Number.isFinite(recipe.cook_minutes) ? String(recipe.cook_minutes) : '',
       servings: Number.isFinite(recipe.servings) ? String(recipe.servings) : '',
-      notes: recipe.notes || '',
     });
     setEditId(recipe.id);
     setAddOpen(true);
@@ -1012,17 +1056,6 @@ const App = () => {
                 className="w-full p-2 border dark:border-gray-600 rounded resize-y"
               />
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 dark:text-gray-300 mb-1">{t.notesHeading}</label>
-              <textarea
-                name="notes"
-                placeholder={t.notesPh}
-                value={form.notes}
-                onChange={handleChange}
-                rows={3}
-                className="w-full p-2 border dark:border-gray-600 rounded resize-y"
-              />
-            </div>
             <div className="flex gap-2">
               <button
                 type="submit"
@@ -1057,6 +1090,8 @@ const App = () => {
                     onClick={() => {
                       setViewRecipe(recipe);
                       setDetailTab('steps');
+                      setAddingNote(false);
+                      setNoteDraft('');
                     }}
                     className="text-left bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-xl overflow-hidden shadow"
                   >
@@ -1084,13 +1119,6 @@ const App = () => {
             <>
               <div className="fixed inset-0 z-30 bg-black/60" onClick={() => setViewRecipe(null)} />
               <div className="fixed inset-x-4 top-10 bottom-10 z-40 max-w-lg mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-y-auto p-6">
-                <button
-                  onClick={() => setViewRecipe(null)}
-                  className="float-right text-2xl leading-none text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                  aria-label="close"
-                >
-                  &times;
-                </button>
                 <div className="relative mb-3">
                   {viewRecipe.image ? (
                     <img src={viewRecipe.image} alt={viewRecipe.name} className="w-full aspect-square object-cover rounded" />
@@ -1099,7 +1127,7 @@ const App = () => {
                       <span className="text-5xl">{CAT_EMOJI[viewRecipe.category] || '🍽️'}</span>
                     </div>
                   )}
-                  <div className="absolute top-2 right-2 flex gap-1">
+                  <div className="absolute top-2 right-2 flex gap-1.5">
                     <button
                       onClick={() => {
                         const r = viewRecipe;
@@ -1107,7 +1135,7 @@ const App = () => {
                         handleEdit(r);
                       }}
                       aria-label={t.edit}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white"
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white shadow"
                     >
                       ✏️
                     </button>
@@ -1116,9 +1144,16 @@ const App = () => {
                         if (await handleDelete(viewRecipe.id)) setViewRecipe(null);
                       }}
                       aria-label={t.del}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-red-600 text-white"
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-red-600 text-white shadow"
                     >
                       🗑️
+                    </button>
+                    <button
+                      onClick={() => setViewRecipe(null)}
+                      aria-label="close"
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white shadow text-lg leading-none"
+                    >
+                      ✕
                     </button>
                   </div>
                 </div>
@@ -1194,11 +1229,62 @@ const App = () => {
                 )}
                 {detailTab === 'notes' && (
                   <>
-                    <p className="whitespace-pre-line text-gray-700 dark:text-gray-300">
-                      {viewRecipe.notes || '—'}
-                    </p>
+                    {!addingNote ? (
+                      <button
+                        type="button"
+                        onClick={() => setAddingNote(true)}
+                        className="text-sm font-bold py-1 px-3 rounded-full border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        {t.addNote}
+                      </button>
+                    ) : (
+                      <div className="mb-3">
+                        <textarea
+                          value={noteDraft}
+                          onChange={(e) => setNoteDraft(e.target.value)}
+                          placeholder={t.noteText}
+                          rows={3}
+                          autoFocus
+                          className="w-full p-2 border dark:border-gray-600 rounded resize-y"
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={handleAddNote}
+                            disabled={noteBusy || !noteDraft.trim()}
+                            className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white font-bold text-sm py-1 px-3 rounded"
+                          >
+                            {t.saveNote}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAddingNote(false);
+                              setNoteDraft('');
+                            }}
+                            className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 font-bold text-sm py-1 px-3 rounded"
+                          >
+                            {t.cancelNote}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {Array.isArray(viewRecipe.notes) && viewRecipe.notes.length > 0 ? (
+                      <ul className="mt-3 space-y-3">
+                        {viewRecipe.notes.map((n, idx) => (
+                          <li key={idx} className="border-l-2 border-orange-300 dark:border-orange-600 pl-3">
+                            <p className="text-xs text-gray-400">{n.date}</p>
+                            <p className="whitespace-pre-line text-gray-700 dark:text-gray-300">{n.text}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-400 text-sm mt-3">{t.noNotes}</p>
+                    )}
+
                     {viewRecipe.url && (
-                      <p className="mt-3">
+                      <p className="mt-4">
                         🔗 <a href={viewRecipe.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{t.link}</a>
                       </p>
                     )}

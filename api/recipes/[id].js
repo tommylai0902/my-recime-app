@@ -38,11 +38,13 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: '找不到要更新的食譜' });
       }
       const n = (v) => (Number.isFinite(v) ? v : null);
+      // notes 淨係「有傳先改」：主表單編輯唔會帶埋 notes，唔想因為咁誤刪備注記錄
+      const notesParam = Array.isArray(notes) ? JSON.stringify(notes) : null;
       const result = await pool.query(
         `UPDATE recipes SET name = $1, description = $2, ingredients = $3, image = $4, url = $5, category = $6,
-                nutrition = NULL, prep_minutes = $9, cook_minutes = $10, servings = $11, notes = $12
+                nutrition = NULL, prep_minutes = $9, cook_minutes = $10, servings = $11, notes = COALESCE($12::jsonb, notes)
          WHERE id = $7 AND (user_id = $8 OR user_id IS NULL) RETURNING *`,
-        [name, description, JSON.stringify(ingredients), image, url, category, id, uid, n(prep_minutes), n(cook_minutes), n(servings), notes || null]
+        [name, description, JSON.stringify(ingredients), image, url, category, id, uid, n(prep_minutes), n(cook_minutes), n(servings), notesParam]
       );
       // 換咗相：舊嗰張（如果係我哋自己存嘅）唔再有用，清走
       if (prev.rows[0].image && prev.rows[0].image !== image) {
