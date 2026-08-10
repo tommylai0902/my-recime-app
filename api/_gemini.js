@@ -53,8 +53,9 @@ export const recipeSchema = {
     },
     ingredients: { type: 'ARRAY', items: { type: 'STRING' }, description: '材料清單，每項包含份量' },
     description: { type: 'STRING', description: '簡介一段，然後做法步驟 — 每個步驟自成一行，用換行符分隔' },
+    time_minutes: { type: 'INTEGER', description: '由準備到完成大約需要幾多分鐘，冇明講就按材料同做法自己估' },
   },
-  required: ['name', 'category', 'ingredients', 'description'],
+  required: ['name', 'category', 'ingredients', 'description', 'time_minutes'],
 };
 
 export function geminiError(res, err, fallback) {

@@ -31,16 +31,20 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { name, description, image, ingredients, url, category } = req.body;
+    const { name, description, image, ingredients, url, category, time_minutes } = req.body;
     if (!name || !description || !ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
       res.status(400).json({ error: '名稱、描述和原料為必填項，且原料必須為非空陣列' });
       return;
     }
+    if (!image) {
+      res.status(400).json({ error: '請上載一張食譜圖片' });
+      return;
+    }
     const result = await pool.query(
-      `INSERT INTO recipes (name, description, image, ingredients, url, category, user_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO recipes (name, description, image, ingredients, url, category, user_id, time_minutes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [name, description, image, JSON.stringify(ingredients), url, category, uid]
+      [name, description, image, JSON.stringify(ingredients), url, category, uid, Number.isFinite(time_minutes) ? time_minutes : null]
     );
     res.status(201).json(result.rows[0]);
     return;

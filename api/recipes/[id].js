@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      const { name, description, ingredients, image, url, category } = req.body;
+      const { name, description, ingredients, image, url, category, time_minutes } = req.body;
       const prev = await pool.query(
         'SELECT image FROM recipes WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
         [id, uid]
@@ -39,9 +39,9 @@ export default async function handler(req, res) {
       }
       const result = await pool.query(
         `UPDATE recipes SET name = $1, description = $2, ingredients = $3, image = $4, url = $5, category = $6,
-                nutrition = NULL
+                nutrition = NULL, time_minutes = $9
          WHERE id = $7 AND (user_id = $8 OR user_id IS NULL) RETURNING *`,
-        [name, description, JSON.stringify(ingredients), image, url, category, id, uid]
+        [name, description, JSON.stringify(ingredients), image, url, category, id, uid, Number.isFinite(time_minutes) ? time_minutes : null]
       );
       // 換咗相：舊嗰張（如果係我哋自己存嘅）唔再有用，清走
       if (prev.rows[0].image && prev.rows[0].image !== image) {

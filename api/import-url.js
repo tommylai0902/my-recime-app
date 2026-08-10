@@ -32,6 +32,14 @@ function firstImageUrl(image) {
   return typeof url === 'string' ? url : '';
 }
 
+// JSON-LD 嘅時間係 ISO 8601 duration，例如 "PT1H15M" = 75 分鐘
+function parseDurationMinutes(iso) {
+  if (typeof iso !== 'string') return null;
+  const m = iso.match(/^PT(?:(\d+)H)?(?:(\d+)M)?/i);
+  if (!m || (!m[1] && !m[2])) return null;
+  return Number(m[1] || 0) * 60 + Number(m[2] || 0);
+}
+
 // IG caption 本身已經寫晒材料同步驟嘅話，直接用原文，唔使 AI
 function parseCaptionRecipe(og) {
   // IG og:description 格式：`995K likes, 123 comments - user on Jan 1: "caption內文"`
@@ -112,6 +120,7 @@ function fromJsonLd(html) {
           ingredients: ingredients.map(decode),
           description: decode([n.description, steps].filter(Boolean).join(' ')).slice(0, 3000),
           image: firstImageUrl(n.image),
+          time_minutes: parseDurationMinutes(n.totalTime) ?? parseDurationMinutes(n.cookTime) ?? parseDurationMinutes(n.prepTime),
         };
       }
     } catch {}

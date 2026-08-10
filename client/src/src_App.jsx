@@ -71,6 +71,13 @@ const STR = {
     name: '名稱',
     category: '分類',
     imageUrl: '圖片網址',
+    imageRequiredHint: '新增食譜要有一張圖片（掃描/上載/匯入會自動填，或者自己貼網址）',
+    prepTime: '需時（分鐘）',
+    minutesAbbrev: '分鐘',
+    itemsLabel: '項材料',
+    changeThumbnail: '🖼 更改縮圖',
+    thumbUpdating: '更新緊⋯⋯',
+    thumbFailed: '更改縮圖失敗',
     recipeUrl: '食譜連結',
     ingredients: '原料（用逗號分隔）',
     description: '描述',
@@ -153,6 +160,13 @@ const STR = {
     name: 'Name',
     category: 'Category',
     imageUrl: 'Image URL',
+    imageRequiredHint: 'New recipes need a photo (scan/upload/import auto-fills this, or paste a URL)',
+    prepTime: 'Time needed (minutes)',
+    minutesAbbrev: 'min',
+    itemsLabel: 'items',
+    changeThumbnail: '🖼 Change thumbnail',
+    thumbUpdating: 'Updating…',
+    thumbFailed: 'Failed to update thumbnail',
     recipeUrl: 'Recipe link',
     ingredients: 'Ingredients (comma separated)',
     description: 'Description',
@@ -280,6 +294,7 @@ const emptyRecipe = {
   ingredients: '',
   url: '',
   category: '',
+  time_minutes: '',
 };
 
 // 縮到最長邊 1024px 再轉 base64，避免 request body 過大
@@ -354,6 +369,7 @@ const App = () => {
   const [catFilter, setCatFilter] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [viewRecipe, setViewRecipe] = useState(null);
+  const [thumbBusy, setThumbBusy] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
   const [convVal, setConvVal] = useState('');
@@ -468,6 +484,7 @@ const App = () => {
       description: data.description,
       ingredients: data.ingredients.join(', '),
       image: data.image || '',
+      time_minutes: Number.isFinite(data.time_minutes) ? String(data.time_minutes) : '',
       url: sourceUrl,
     });
     setEditId(null);
@@ -494,6 +511,33 @@ const App = () => {
       alert(t.scanFailedPrefix + errMsg(err));
     } finally {
       setScanning(false);
+    }
+  };
+
+  // 喺食譜詳情入面單獨換縮圖：存新相 → 帶埋現有資料 PUT 返個食譜（後端會自動刪舊相）
+  const handleChangeThumbnail = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file || !viewRecipe) return;
+    setThumbBusy(true);
+    try {
+      const image = await compressImage(file);
+      const { data: uploaded } = await axios.post('/api/upload-image', { image, media_type: 'image/jpeg' });
+      const { data: updated } = await axios.put(`/api/recipes/${viewRecipe.id}`, {
+        name: viewRecipe.name,
+        description: viewRecipe.description,
+        ingredients: viewRecipe.ingredients,
+        image: uploaded.url,
+        url: viewRecipe.url,
+        category: viewRecipe.category,
+        time_minutes: viewRecipe.time_minutes,
+      });
+      setViewRecipe(updated);
+      fetchRecipes();
+    } catch (err) {
+      alert(t.thumbFailed + '：' + errMsg(err));
+    } finally {
+      setThumbBusy(false);
     }
   };
 
@@ -539,6 +583,7 @@ const App = () => {
       ...form,
       category: normalizeCat(form.category),
       ingredients: form.ingredients.split(/[,\n]/).map(s => s.trim()).filter(Boolean),
+      time_minutes: form.time_minutes === '' ? null : Number(form.time_minutes),
     };
     if (editId) {
       await axios.put(`/api/recipes/${editId}`, payload);
@@ -559,6 +604,7 @@ const App = () => {
       ingredients: Array.isArray(recipe.ingredients)
         ? recipe.ingredients.join(', ')
         : recipe.ingredients,
+      time_minutes: Number.isFinite(recipe.time_minutes) ? String(recipe.time_minutes) : '',
     });
     setEditId(recipe.id);
     setAddOpen(true);
@@ -800,11 +846,27 @@ const App = () => {
               </datalist>
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700 dark:text-gray-300 mb-1">{t.imageUrl}</label>
+              <label className="block text-gray-700 dark:text-gray-300 mb-1">
+                {t.imageUrl}{!editId && ' *'}
+              </label>
               <input
                 name="image"
                 placeholder={t.imageUrl}
                 value={form.image}
+                onChange={handleChange}
+                required={!editId}
+                className="w-full p-2 border dark:border-gray-600 rounded"
+              />
+              {!editId && <p className="text-xs text-gray-400 mt-1">{t.imageRequiredHint}</p>}
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 dark:text-gray-300 mb-1">{t.prepTime}</label>
+              <input
+                type="number"
+                min="0"
+                name="time_minutes"
+                placeholder={t.prepTime}
+                value={form.time_minutes}
                 onChange={handleChange}
                 className="w-full p-2 border dark:border-gray-600 rounded"
               />
@@ -912,28 +974,32 @@ const App = () => {
           ) : shownRecipes.length === 0 ? (
             <p>{t.empty}</p>
           ) : (
-            <div className="grid grid-cols-3 gap-1">
-              {shownRecipes.map((recipe) => (
-                <button
-                  key={recipe.id}
-                  onClick={() => setViewRecipe(recipe)}
-                  className="relative aspect-square overflow-hidden rounded bg-gray-200 dark:bg-gray-700"
-                >
-                  {recipe.image ? (
-                    <>
-                      <img src={recipe.image} alt={recipe.name} className="w-full h-full object-cover" />
-                      <span className="absolute inset-x-0 bottom-0 px-2 py-1.5 text-xs font-bold text-white text-center line-clamp-2 bg-gradient-to-t from-black/80 to-transparent">
-                        {recipe.name}
-                      </span>
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-1 p-2 bg-gradient-to-br from-orange-300 to-orange-500 dark:from-gray-600 dark:to-gray-800">
-                      <span className="text-3xl">{CAT_EMOJI[recipe.category] || '🍽️'}</span>
-                      <span className="text-xs font-bold text-white text-center line-clamp-2">{recipe.name}</span>
+            <div className="grid grid-cols-2 gap-3">
+              {shownRecipes.map((recipe) => {
+                const count = Array.isArray(recipe.ingredients) ? recipe.ingredients.length : 0;
+                return (
+                  <button
+                    key={recipe.id}
+                    onClick={() => setViewRecipe(recipe)}
+                    className="text-left bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-xl overflow-hidden shadow"
+                  >
+                    {recipe.image ? (
+                      <img src={recipe.image} alt={recipe.name} className="w-full aspect-square object-cover" />
+                    ) : (
+                      <div className="w-full aspect-square flex items-center justify-center bg-gradient-to-br from-orange-300 to-orange-500 dark:from-gray-600 dark:to-gray-800">
+                        <span className="text-4xl">{CAT_EMOJI[recipe.category] || '🍽️'}</span>
+                      </div>
+                    )}
+                    <div className="p-2">
+                      <p className="font-bold text-sm line-clamp-2">{recipe.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {recipe.time_minutes ? `⏱ ${recipe.time_minutes} ${t.minutesAbbrev} ・ ` : ''}
+                        🛒 {count} {t.itemsLabel}
+                      </p>
                     </div>
-                  )}
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -949,10 +1015,17 @@ const App = () => {
                   &times;
                 </button>
                 {viewRecipe.image && (
-                  <img src={viewRecipe.image} alt={viewRecipe.name} className="w-full h-auto rounded mb-3" />
+                  <img src={viewRecipe.image} alt={viewRecipe.name} className="w-full h-auto rounded mb-2" />
                 )}
+                <label className={`inline-block text-xs font-bold py-1 px-3 rounded-full border dark:border-gray-600 cursor-pointer mb-3 ${thumbBusy ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                  {thumbBusy ? t.thumbUpdating : t.changeThumbnail}
+                  <input type="file" accept="image/*" onChange={handleChangeThumbnail} disabled={thumbBusy} className="hidden" />
+                </label>
                 <h2 className="text-lg font-bold">{viewRecipe.name}</h2>
-                <p><strong>{t.categoryLabel}</strong>{catLabel(viewRecipe.category, lang)}</p>
+                <p>
+                  <strong>{t.categoryLabel}</strong>{catLabel(viewRecipe.category, lang)}
+                  {viewRecipe.time_minutes ? ` ・ ⏱ ${viewRecipe.time_minutes} ${t.minutesAbbrev}` : ''}
+                </p>
                 <p className="whitespace-pre-line">{formatSteps(viewRecipe.description)}</p>
                 {Array.isArray(viewRecipe.ingredients) && viewRecipe.ingredients.length > 0 && (
                   <>
