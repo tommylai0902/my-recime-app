@@ -416,6 +416,8 @@ const App = () => {
   const [addingNote, setAddingNote] = useState(false);
   const [noteDraft, setNoteDraft] = useState('');
   const [noteBusy, setNoteBusy] = useState(false);
+  const [editingNoteIdx, setEditingNoteIdx] = useState(null);
+  const [editNoteDraft, setEditNoteDraft] = useState('');
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
   const [convVal, setConvVal] = useState('');
@@ -584,16 +586,11 @@ const App = () => {
     }
   };
 
-  // 加一條有日期嘅備注：帶埋 viewRecipe 其餘欄位一齊 PUT 返（後端會保留除 notes 外嘅其他欄位不變）
-  const handleAddNote = async () => {
-    const text = noteDraft.trim();
-    if (!text || !viewRecipe) return;
+  // 帶埋 viewRecipe 其餘欄位一齊 PUT 返個新 notes 陣列（後端 COALESCE 會保留除 notes 外嘅其他欄位不變）
+  const putRecipeNotes = async (newNotes) => {
+    if (!viewRecipe) return;
     setNoteBusy(true);
     try {
-      const newNotes = [
-        { date: new Date().toISOString().slice(0, 10), text },
-        ...(Array.isArray(viewRecipe.notes) ? viewRecipe.notes : []),
-      ];
       const { data: updated } = await axios.put(`/api/recipes/${viewRecipe.id}`, {
         name: viewRecipe.name,
         description: viewRecipe.description,
@@ -607,14 +604,39 @@ const App = () => {
         notes: newNotes,
       });
       setViewRecipe(updated);
-      setNoteDraft('');
-      setAddingNote(false);
       fetchRecipes();
     } catch (err) {
       alert(errMsg(err));
     } finally {
       setNoteBusy(false);
     }
+  };
+
+  const handleAddNote = async () => {
+    const text = noteDraft.trim();
+    if (!text || !viewRecipe) return;
+    const newNotes = [
+      { date: new Date().toISOString().slice(0, 10), text },
+      ...(Array.isArray(viewRecipe.notes) ? viewRecipe.notes : []),
+    ];
+    await putRecipeNotes(newNotes);
+    setNoteDraft('');
+    setAddingNote(false);
+  };
+
+  const handleSaveEditNote = async () => {
+    const text = editNoteDraft.trim();
+    if (!text || !viewRecipe || editingNoteIdx === null) return;
+    const newNotes = viewRecipe.notes.map((n, i) => (i === editingNoteIdx ? { ...n, text } : n));
+    await putRecipeNotes(newNotes);
+    setEditingNoteIdx(null);
+    setEditNoteDraft('');
+  };
+
+  const handleDeleteNote = async (idx) => {
+    if (!viewRecipe || !window.confirm(t.confirmDelete)) return;
+    const newNotes = viewRecipe.notes.filter((_, i) => i !== idx);
+    await putRecipeNotes(newNotes);
   };
 
   const handleImport = async () => {
@@ -1092,6 +1114,8 @@ const App = () => {
                       setDetailTab('steps');
                       setAddingNote(false);
                       setNoteDraft('');
+                      setEditingNoteIdx(null);
+                      setEditNoteDraft('');
                     }}
                     className="text-left bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-xl overflow-hidden shadow"
                   >
@@ -1274,8 +1298,61 @@ const App = () => {
                       <ul className="mt-3 space-y-3">
                         {viewRecipe.notes.map((n, idx) => (
                           <li key={idx} className="border-l-2 border-orange-300 dark:border-orange-600 pl-3">
-                            <p className="text-xs text-gray-400">{n.date}</p>
-                            <p className="whitespace-pre-line text-gray-700 dark:text-gray-300">{n.text}</p>
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-xs text-gray-400">{n.date}</p>
+                              {editingNoteIdx !== idx && (
+                                <div className="flex gap-2 flex-shrink-0">
+                                  <button
+                                    onClick={() => {
+                                      setEditingNoteIdx(idx);
+                                      setEditNoteDraft(n.text);
+                                    }}
+                                    aria-label={t.edit}
+                                    className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteNote(idx)}
+                                    aria-label={t.del}
+                                    className="text-xs text-gray-400 hover:text-red-500"
+                                  >
+                                    🗑️
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            {editingNoteIdx === idx ? (
+                              <div className="mt-1">
+                                <textarea
+                                  value={editNoteDraft}
+                                  onChange={(e) => setEditNoteDraft(e.target.value)}
+                                  rows={3}
+                                  autoFocus
+                                  className="w-full p-2 border dark:border-gray-600 rounded resize-y text-sm"
+                                />
+                                <div className="flex gap-2 mt-1">
+                                  <button
+                                    onClick={handleSaveEditNote}
+                                    disabled={noteBusy || !editNoteDraft.trim()}
+                                    className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white font-bold text-xs py-1 px-2 rounded"
+                                  >
+                                    {t.saveNote}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingNoteIdx(null);
+                                      setEditNoteDraft('');
+                                    }}
+                                    className="bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 font-bold text-xs py-1 px-2 rounded"
+                                  >
+                                    {t.cancelNote}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="whitespace-pre-line text-gray-700 dark:text-gray-300">{n.text}</p>
+                            )}
                           </li>
                         ))}
                       </ul>
