@@ -1165,7 +1165,7 @@ const App = () => {
                       setEditingNoteIdx(null);
                       setEditNoteDraft('');
                     }}
-                    className="text-left bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-xl overflow-hidden shadow"
+                    className="text-left bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-400 rounded-xl overflow-hidden shadow-lg"
                   >
                     {recipe.image ? (
                       <img src={recipe.image} alt={recipe.name} className="w-full aspect-square object-cover" />
