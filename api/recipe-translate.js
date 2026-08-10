@@ -41,7 +41,8 @@ export default async function handler(req, res) {
       [
         {
           text:
-            `Translate this recipe into ${targetLang}. Keep ingredient quantities and units as-is, only translate the language:\n\n` +
+            `Translate this recipe's name and steps into ${targetLang}. For each ingredient, translate ONLY the food/item name and keep the numeric quantity and unit unchanged ` +
+            `(e.g. "雞胸肉 200克" -> "chicken breast 200g", "chicken breast 200g" -> "雞胸肉 200克") — every ingredient must end up with translated wording, do not leave any ingredient in the original language:\n\n` +
             `Name: ${row.name}\n\nSteps: ${row.description}\n\nIngredients: ${[].concat(row.ingredients || []).join('; ')}`,
         },
       ],
