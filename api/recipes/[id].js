@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       const notesParam = Array.isArray(notes) ? JSON.stringify(notes) : null;
       const result = await pool.query(
         `UPDATE recipes SET name = $1, description = $2, ingredients = $3, image = $4, url = $5, category = $6,
-                nutrition = NULL, prep_minutes = $9, cook_minutes = $10, servings = $11, notes = COALESCE($12::jsonb, notes)
+                nutrition = NULL, translation = NULL, prep_minutes = $9, cook_minutes = $10, servings = $11, notes = COALESCE($12::jsonb, notes)
          WHERE id = $7 AND (user_id = $8 OR user_id IS NULL) RETURNING *`,
         [name, description, JSON.stringify(ingredients), image, url, category, id, uid, n(prep_minutes), n(cook_minutes), n(servings), notesParam]
       );

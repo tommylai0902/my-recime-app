@@ -96,6 +96,8 @@ const STR = {
     stepsHeading: '做法',
     prevStep: '上一步',
     nextStep: '下一步',
+    translate: '翻譯',
+    showOriginal: '原文',
     nutritionHeading: '營養',
     nutritionLoading: '計緊營養⋯⋯',
     notesHeading: '備注',
@@ -207,6 +209,8 @@ const STR = {
     stepsHeading: 'Method',
     prevStep: 'Previous',
     nextStep: 'Next',
+    translate: 'Translate',
+    showOriginal: 'Original',
     nutritionHeading: 'Nutrition',
     nutritionLoading: 'Calculating…',
     notesHeading: 'Notes',
@@ -416,6 +420,8 @@ const App = () => {
   const [viewRecipe, setViewRecipe] = useState(null);
   const [detailTab, setDetailTab] = useState('steps');
   const [currentStep, setCurrentStep] = useState(0);
+  const [showTranslated, setShowTranslated] = useState(false);
+  const [translateBusy, setTranslateBusy] = useState(false);
   const [thumbBusy, setThumbBusy] = useState(false);
   const [cropFile, setCropFile] = useState(null);
   const [addingNote, setAddingNote] = useState(false);
@@ -519,10 +525,25 @@ const App = () => {
     }
   }, [token, tab]);
 
-  // 換咗食譜（開新一個）先重設做法目前步驟，同一個食譜內部更新（如加備注）唔應該重設
+  // 換咗食譜（開新一個）先重設做法目前步驟同翻譯顯示，同一個食譜內部更新（如加備注）唔應該重設
   useEffect(() => {
     setCurrentStep(0);
+    setShowTranslated(false);
   }, [viewRecipe?.id]);
+
+  // 撳「翻譯」先按需計：有cache就直接顯示，冇就叫 AI 譯（結果會存落 DB，下次即顯）
+  useEffect(() => {
+    if (!showTranslated || !viewRecipe || viewRecipe.translation || translateBusy) return;
+    setTranslateBusy(true);
+    axios
+      .post('/api/recipe-translate', { id: viewRecipe.id })
+      .then(({ data }) => setViewRecipe((r) => (r && r.id === viewRecipe.id ? { ...r, translation: data } : r)))
+      .catch((err) => {
+        if (err.response?.status === 401) logout();
+        setShowTranslated(false);
+      })
+      .finally(() => setTranslateBusy(false));
+  }, [showTranslated, viewRecipe]);
 
   // 撳入「營養」分頁先按需計：有就直接顯示，冇就叫 AI 計呢一個食譜（結果會存落 DB，下次即開）
   useEffect(() => {
@@ -1168,11 +1189,20 @@ const App = () => {
               <div className="fixed inset-0 z-30 bg-black/60" onClick={() => setViewRecipe(null)} />
               <div className="fixed inset-x-4 top-10 bottom-10 z-40 max-w-lg mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-y-auto p-6">
                 <div className="flex justify-between items-center gap-1.5 mb-2">
-                  {catLabel(viewRecipe.category, lang) ? (
-                    <span className="inline-block bg-orange-100 dark:bg-gray-700 text-orange-700 dark:text-orange-300 text-xs font-bold px-2 py-1 rounded-full">
-                      {catLabel(viewRecipe.category, lang)}
-                    </span>
-                  ) : <span />}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {catLabel(viewRecipe.category, lang) && (
+                      <span className="inline-block bg-orange-100 dark:bg-gray-700 text-orange-700 dark:text-orange-300 text-xs font-bold px-2 py-1 rounded-full">
+                        {catLabel(viewRecipe.category, lang)}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => setShowTranslated((s) => !s)}
+                      disabled={translateBusy}
+                      className="inline-block bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 text-gray-600 dark:text-gray-200 text-xs font-bold px-2 py-1 rounded-full disabled:opacity-50"
+                    >
+                      {translateBusy ? '⏳' : showTranslated ? `🌐 ${t.showOriginal}` : `🌐 ${t.translate}`}
+                    </button>
+                  </div>
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => {
@@ -1212,7 +1242,9 @@ const App = () => {
                     </div>
                   )}
                 </div>
-                <h2 className="text-lg font-bold">{viewRecipe.name}</h2>
+                <h2 className="text-lg font-bold">
+                  {showTranslated && viewRecipe.translation ? viewRecipe.translation.name : viewRecipe.name}
+                </h2>
                 {(viewRecipe.prep_minutes || viewRecipe.cook_minutes || viewRecipe.servings) && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                     {viewRecipe.prep_minutes ? `⏱ ${t.prepMinLabel} ${viewRecipe.prep_minutes} ${t.minutesAbbrev}　` : ''}
@@ -1244,7 +1276,8 @@ const App = () => {
                 </div>
 
                 {detailTab === 'steps' && (() => {
-                  const steps = formatSteps(viewRecipe.description);
+                  const description = showTranslated && viewRecipe.translation ? viewRecipe.translation.description : viewRecipe.description;
+                  const steps = formatSteps(description);
                   if (steps.length <= 1) {
                     return <p className="whitespace-pre-line">{steps[0] || ''}</p>;
                   }
@@ -1286,11 +1319,13 @@ const App = () => {
                     </div>
                   );
                 })()}
-                {detailTab === 'ingredients' && (
+                {detailTab === 'ingredients' && (() => {
+                  const ingredients = showTranslated && viewRecipe.translation ? viewRecipe.translation.ingredients : viewRecipe.ingredients;
+                  return (
                   <>
-                    {Array.isArray(viewRecipe.ingredients) && (
+                    {Array.isArray(ingredients) && (
                       <ul className="list-disc ml-6">
-                        {viewRecipe.ingredients.map((item, idx) => <li key={idx}>{item}</li>)}
+                        {ingredients.map((item, idx) => <li key={idx}>{item}</li>)}
                       </ul>
                     )}
                     <details className="mt-4 bg-gray-50 dark:bg-gray-700 border dark:border-gray-600 rounded p-3">
@@ -1322,7 +1357,8 @@ const App = () => {
                       <p className="text-gray-400 text-xs mt-2">{t.convNote}</p>
                     </details>
                   </>
-                )}
+                  );
+                })()}
                 {detailTab === 'nutrition' && (
                   <>
                     {nutritionBusy ? (
