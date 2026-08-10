@@ -52,6 +52,7 @@ const STR = {
     carbs: '碳水化合物',
     fat: '脂肪',
     nutritionNote: '＊AI 估算值，僅供參考',
+    addRecipe: '＋ 新增食譜',
     scanBtn: '📷 影相掃描',
     uploadBtn: '🖼 上載圖片',
     scanning: '辨識中⋯⋯',
@@ -132,6 +133,7 @@ const STR = {
     carbs: 'Carbs',
     fat: 'Fat',
     nutritionNote: '* AI estimates, for reference only',
+    addRecipe: '＋ Add Recipe',
     scanBtn: '📷 Take a photo',
     uploadBtn: '🖼 Upload a photo',
     scanning: 'Identifying…',
@@ -322,6 +324,7 @@ const App = () => {
   const [editId, setEditId] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [catFilter, setCatFilter] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
   const [convVal, setConvVal] = useState('');
@@ -438,6 +441,7 @@ const App = () => {
       url: sourceUrl,
     });
     setEditId(null);
+    setAddOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -507,6 +511,7 @@ const App = () => {
     }
     setForm(emptyRecipe);
     setEditId(null);
+    setAddOpen(false);
     fetchRecipes();
   };
 
@@ -520,6 +525,7 @@ const App = () => {
         : recipe.ingredients,
     });
     setEditId(recipe.id);
+    setAddOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -533,6 +539,7 @@ const App = () => {
   const handleCancel = () => {
     setEditId(null);
     setForm(emptyRecipe);
+    setAddOpen(false);
   };
 
   const langButton = (
@@ -690,6 +697,17 @@ const App = () => {
 
       {tab === 'recipes' && (
         <>
+          {!addOpen && (
+            <button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              className="mb-6 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-full"
+            >
+              {t.addRecipe}
+            </button>
+          )}
+          {addOpen && (
+          <>
           <div className="flex gap-2 mb-4">
             <input
               value={importUrl}
@@ -795,17 +813,17 @@ const App = () => {
               >
                 {editId ? t.update : t.add}
               </button>
-              {editId && (
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-                >
-                  {t.cancelEdit}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+              >
+                {t.cancelEdit}
+              </button>
             </div>
           </form>
+          </>
+          )}
 
           <details className="mb-8 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 shadow">
             <summary className="font-bold cursor-pointer">{t.converter}</summary>
