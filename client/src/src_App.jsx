@@ -894,10 +894,15 @@ const App = () => {
                 <button
                   key={recipe.id}
                   onClick={() => setViewRecipe(recipe)}
-                  className="aspect-square overflow-hidden rounded bg-gray-200 dark:bg-gray-700"
+                  className="relative aspect-square overflow-hidden rounded bg-gray-200 dark:bg-gray-700"
                 >
                   {recipe.image ? (
-                    <img src={recipe.image} alt={recipe.name} className="w-full h-full object-cover" />
+                    <>
+                      <img src={recipe.image} alt={recipe.name} className="w-full h-full object-cover" />
+                      <span className="absolute inset-x-0 bottom-0 px-2 py-1.5 text-xs font-bold text-white text-center line-clamp-2 bg-gradient-to-t from-black/80 to-transparent">
+                        {recipe.name}
+                      </span>
+                    </>
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-1 p-2 bg-gradient-to-br from-orange-300 to-orange-500 dark:from-gray-600 dark:to-gray-800">
                       <span className="text-3xl">{CAT_EMOJI[recipe.category] || '🍽️'}</span>
