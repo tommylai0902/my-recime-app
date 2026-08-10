@@ -443,6 +443,7 @@ const App = () => {
   const [insightsBusy, setInsightsBusy] = useState(false);
 
   const [shopSel, setShopSel] = useState(() => loadJson('shopSel', []));
+  const [shopSearch, setShopSearch] = useState('');
   const [shopList, setShopList] = useState(() => loadJson('shopList', null));
   const [shopChecked, setShopChecked] = useState(() => loadJson('shopChecked', {}));
   const [genBusy, setGenBusy] = useState(false);
@@ -1601,8 +1602,15 @@ const App = () => {
       {tab === 'shopping' && (
         <>
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-3">{t.shopHint}</p>
+          <input
+            type="search"
+            value={shopSearch}
+            onChange={(e) => setShopSearch(e.target.value)}
+            placeholder={t.searchPh}
+            className="w-full p-2 border dark:border-gray-600 rounded text-sm mb-3"
+          />
           <div className="bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 mb-4 shadow">
-            {recipes.map((r) => (
+            {recipes.filter((r) => r.name.toLowerCase().includes(shopSearch.trim().toLowerCase())).map((r) => (
               <label key={r.id} className="flex items-center gap-2 mb-1 cursor-pointer">
                 <input
                   type="checkbox"
