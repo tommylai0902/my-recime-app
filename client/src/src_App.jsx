@@ -81,6 +81,7 @@ const STR = {
     del: '刪除',
     confirmDelete: '確定要刪除這筆食譜嗎？',
     categoryLabel: '分類：',
+    ingredientsHeading: '材料',
     link: '食譜連結',
     loading: '載入中...',
     empty: '仲未有食譜，掃描或者新增一個啦！',
@@ -162,6 +163,7 @@ const STR = {
     del: 'Delete',
     confirmDelete: 'Delete this recipe?',
     categoryLabel: 'Category: ',
+    ingredientsHeading: 'Ingredients',
     link: 'Recipe link',
     loading: 'Loading...',
     empty: 'No recipes yet — scan or add one!',
@@ -952,11 +954,14 @@ const App = () => {
                 <h2 className="text-lg font-bold">{viewRecipe.name}</h2>
                 <p><strong>{t.categoryLabel}</strong>{catLabel(viewRecipe.category, lang)}</p>
                 <p className="whitespace-pre-line">{formatSteps(viewRecipe.description)}</p>
-                <ul className="list-disc ml-6">
-                  {Array.isArray(viewRecipe.ingredients)
-                    ? viewRecipe.ingredients.map((item, idx) => <li key={idx}>{item}</li>)
-                    : null}
-                </ul>
+                {Array.isArray(viewRecipe.ingredients) && viewRecipe.ingredients.length > 0 && (
+                  <>
+                    <p className="font-bold mt-4 mb-1">{t.ingredientsHeading}</p>
+                    <ul className="list-disc ml-6">
+                      {viewRecipe.ingredients.map((item, idx) => <li key={idx}>{item}</li>)}
+                    </ul>
+                  </>
+                )}
                 {viewRecipe.url && (
                   <p>
                     🔗 <a href={viewRecipe.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{t.link}</a>
