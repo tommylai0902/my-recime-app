@@ -416,6 +416,7 @@ const App = () => {
   const [catFilter, setCatFilter] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [viewRecipe, setViewRecipe] = useState(null);
   const [detailTab, setDetailTab] = useState('steps');
@@ -965,22 +966,35 @@ const App = () => {
               <option value="name">{t.sortName}</option>
               <option value="time">{t.sortTime}</option>
             </select>
+            <button
+              type="button"
+              onClick={() => setSearchOpen((s) => !s)}
+              aria-label={t.searchPh}
+              className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full border dark:border-gray-600 ${
+                searchOpen ? 'bg-orange-100 dark:bg-gray-600' : 'bg-white dark:bg-gray-800'
+              }`}
+            >
+              🔍
+            </button>
+            <button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              aria-label={t.addRecipe}
+              className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold leading-none ml-auto"
+            >
+              ＋
+            </button>
+          </div>
+          {searchOpen && (
             <input
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t.searchPh}
-              className="flex-1 min-w-0 p-2 border dark:border-gray-600 rounded text-sm"
+              autoFocus
+              className="w-full p-2 border dark:border-gray-600 rounded text-sm mb-4"
             />
-            <button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              aria-label={t.addRecipe}
-              className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold leading-none"
-            >
-              ＋
-            </button>
-          </div>
+          )}
           {addOpen && (
           <>
           <div className="flex gap-2 mb-4">
@@ -1165,7 +1179,7 @@ const App = () => {
                       setEditingNoteIdx(null);
                       setEditNoteDraft('');
                     }}
-                    className="text-left bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-400 rounded-xl overflow-hidden shadow-lg"
+                    className="text-left bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-300 rounded-xl overflow-hidden shadow-lg"
                   >
                     {recipe.image ? (
                       <img src={recipe.image} alt={recipe.name} className="w-full aspect-square object-cover" />
