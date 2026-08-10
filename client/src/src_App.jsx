@@ -1151,7 +1151,7 @@ const App = () => {
                       handleEdit(r);
                     }}
                     aria-label={t.edit}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-100"
                   >
                     ✏️
                   </button>
@@ -1160,14 +1160,14 @@ const App = () => {
                       if (await handleDelete(viewRecipe.id)) setViewRecipe(null);
                     }}
                     aria-label={t.del}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-red-100 dark:hover:bg-red-900 text-gray-700 dark:text-gray-200"
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 hover:bg-red-100 dark:hover:bg-red-900 text-gray-700 dark:text-gray-100"
                   >
                     🗑️
                   </button>
                   <button
                     onClick={() => setViewRecipe(null)}
                     aria-label="close"
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-lg leading-none"
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-100 text-lg leading-none"
                   >
                     ✕
                   </button>
