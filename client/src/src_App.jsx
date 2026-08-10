@@ -214,6 +214,27 @@ const CAT_EMOJI = {
   italian: '🍕', dessert: '🍰', soup: '🍜', snack: '🍟', other: '🍽️',
 };
 
+// 部分食譜（尤其舊掃描）成段做法冧埋一齊冇換行；偵測遞增編號步驟（1. 2. 3.…）自動拆行顯示
+const formatSteps = (text) => {
+  if (!text) return text;
+  const re = /(^|[。.!?！？\n])\s*(\d{1,2})[.、)]\s*/g;
+  let expected = 1;
+  const marks = [];
+  let m;
+  while ((m = re.exec(text))) {
+    if (Number(m[2]) === expected) {
+      marks.push(m.index + m[1].length);
+      expected++;
+    }
+  }
+  if (marks.length < 2) return text; // 唔似編號步驟，原文照顯示
+  let result = text;
+  for (let i = marks.length - 1; i >= 0; i--) {
+    result = result.slice(0, marks[i]) + '\n' + result.slice(marks[i]);
+  }
+  return result.replace(/\n{2,}/g, '\n').trim();
+};
+
 // 單位換算：g↔ml 靠密度（g/ml），cup=240ml tbsp=15ml tsp=5ml
 const DENSITY = { water: 1, milk: 1.03, oil: 0.92, flour: 0.53, sugar: 0.85, rice: 0.85, butter: 0.95, honey: 1.42 };
 const CONV_TYPES = [
@@ -930,7 +951,7 @@ const App = () => {
                 )}
                 <h2 className="text-lg font-bold">{viewRecipe.name}</h2>
                 <p><strong>{t.categoryLabel}</strong>{catLabel(viewRecipe.category, lang)}</p>
-                <p className="whitespace-pre-line">{viewRecipe.description}</p>
+                <p className="whitespace-pre-line">{formatSteps(viewRecipe.description)}</p>
                 <ul className="list-disc ml-6">
                   {Array.isArray(viewRecipe.ingredients)
                     ? viewRecipe.ingredients.map((item, idx) => <li key={idx}>{item}</li>)
