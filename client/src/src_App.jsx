@@ -1167,34 +1167,41 @@ const App = () => {
             <>
               <div className="fixed inset-0 z-30 bg-black/60" onClick={() => setViewRecipe(null)} />
               <div className="fixed inset-x-4 top-10 bottom-10 z-40 max-w-lg mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-y-auto p-6">
-                <div className="flex justify-end gap-1.5 mb-2">
-                  <button
-                    onClick={() => {
-                      const r = viewRecipe;
-                      setViewRecipe(null);
-                      handleEdit(r);
-                    }}
-                    aria-label={t.edit}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-100"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (await handleDelete(viewRecipe.id)) setViewRecipe(null);
-                    }}
-                    aria-label={t.del}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 hover:bg-red-100 dark:hover:bg-red-900 text-gray-700 dark:text-gray-100"
-                  >
-                    🗑️
-                  </button>
-                  <button
-                    onClick={() => setViewRecipe(null)}
-                    aria-label="close"
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-100 text-lg leading-none"
-                  >
-                    ✕
-                  </button>
+                <div className="flex justify-between items-center gap-1.5 mb-2">
+                  {catLabel(viewRecipe.category, lang) ? (
+                    <span className="inline-block bg-orange-100 dark:bg-gray-700 text-orange-700 dark:text-orange-300 text-xs font-bold px-2 py-1 rounded-full">
+                      {catLabel(viewRecipe.category, lang)}
+                    </span>
+                  ) : <span />}
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => {
+                        const r = viewRecipe;
+                        setViewRecipe(null);
+                        handleEdit(r);
+                      }}
+                      aria-label={t.edit}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-100"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (await handleDelete(viewRecipe.id)) setViewRecipe(null);
+                      }}
+                      aria-label={t.del}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 hover:bg-red-100 dark:hover:bg-red-900 text-gray-700 dark:text-gray-100"
+                    >
+                      🗑️
+                    </button>
+                    <button
+                      onClick={() => setViewRecipe(null)}
+                      aria-label="close"
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 hover:bg-gray-200 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-100 text-lg leading-none"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
                 <div className="mb-3">
                   {viewRecipe.image ? (
@@ -1206,11 +1213,6 @@ const App = () => {
                   )}
                 </div>
                 <h2 className="text-lg font-bold">{viewRecipe.name}</h2>
-                {catLabel(viewRecipe.category, lang) && (
-                  <span className="inline-block bg-orange-100 dark:bg-gray-700 text-orange-700 dark:text-orange-300 text-xs font-bold px-2 py-1 rounded-full mt-1">
-                    {catLabel(viewRecipe.category, lang)}
-                  </span>
-                )}
                 {(viewRecipe.prep_minutes || viewRecipe.cook_minutes || viewRecipe.servings) && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                     {viewRecipe.prep_minutes ? `⏱ ${t.prepMinLabel} ${viewRecipe.prep_minutes} ${t.minutesAbbrev}　` : ''}
