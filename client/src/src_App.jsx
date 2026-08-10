@@ -1307,14 +1307,14 @@ const App = () => {
                                       setEditingNoteIdx(idx);
                                       setEditNoteDraft(n.text);
                                     }}
-                                    aria-label={t.edit}
+                                    aria-label={`${t.edit} note`}
                                     className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                                   >
                                     ✏️
                                   </button>
                                   <button
                                     onClick={() => handleDeleteNote(idx)}
-                                    aria-label={t.del}
+                                    aria-label={`${t.del} note`}
                                     className="text-xs text-gray-400 hover:text-red-500"
                                   >
                                     🗑️
