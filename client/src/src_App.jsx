@@ -1143,7 +1143,36 @@ const App = () => {
             <>
               <div className="fixed inset-0 z-30 bg-black/60" onClick={() => setViewRecipe(null)} />
               <div className="fixed inset-x-4 top-10 bottom-10 z-40 max-w-lg mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-y-auto p-6">
-                <div className="relative mb-3">
+                <div className="flex justify-end gap-1.5 mb-2">
+                  <button
+                    onClick={() => {
+                      const r = viewRecipe;
+                      setViewRecipe(null);
+                      handleEdit(r);
+                    }}
+                    aria-label={t.edit}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (await handleDelete(viewRecipe.id)) setViewRecipe(null);
+                    }}
+                    aria-label={t.del}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-red-100 dark:hover:bg-red-900 text-gray-700 dark:text-gray-200"
+                  >
+                    🗑️
+                  </button>
+                  <button
+                    onClick={() => setViewRecipe(null)}
+                    aria-label="close"
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-lg leading-none"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="mb-3">
                   {viewRecipe.image ? (
                     <img src={viewRecipe.image} alt={viewRecipe.name} className="w-full aspect-square object-cover rounded" />
                   ) : (
@@ -1151,35 +1180,6 @@ const App = () => {
                       <span className="text-5xl">{CAT_EMOJI[viewRecipe.category] || '🍽️'}</span>
                     </div>
                   )}
-                  <div className="absolute top-2 right-2 flex gap-1.5">
-                    <button
-                      onClick={() => {
-                        const r = viewRecipe;
-                        setViewRecipe(null);
-                        handleEdit(r);
-                      }}
-                      aria-label={t.edit}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white shadow"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (await handleDelete(viewRecipe.id)) setViewRecipe(null);
-                      }}
-                      aria-label={t.del}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-red-600 text-white shadow"
-                    >
-                      🗑️
-                    </button>
-                    <button
-                      onClick={() => setViewRecipe(null)}
-                      aria-label="close"
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 text-white shadow text-lg leading-none"
-                    >
-                      ✕
-                    </button>
-                  </div>
                 </div>
                 <h2 className="text-lg font-bold">{viewRecipe.name}</h2>
                 {catLabel(viewRecipe.category, lang) && (
