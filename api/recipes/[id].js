@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-      const { name, description, ingredients, image, url, category, time_minutes } = req.body;
+      const { name, description, ingredients, image, url, category, prep_minutes, cook_minutes, servings, notes } = req.body;
       const prev = await pool.query(
         'SELECT image FROM recipes WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
         [id, uid]
@@ -37,11 +37,12 @@ export default async function handler(req, res) {
       if (prev.rowCount === 0) {
         return res.status(404).json({ error: '找不到要更新的食譜' });
       }
+      const n = (v) => (Number.isFinite(v) ? v : null);
       const result = await pool.query(
         `UPDATE recipes SET name = $1, description = $2, ingredients = $3, image = $4, url = $5, category = $6,
-                nutrition = NULL, time_minutes = $9
+                nutrition = NULL, prep_minutes = $9, cook_minutes = $10, servings = $11, notes = $12
          WHERE id = $7 AND (user_id = $8 OR user_id IS NULL) RETURNING *`,
-        [name, description, JSON.stringify(ingredients), image, url, category, id, uid, Number.isFinite(time_minutes) ? time_minutes : null]
+        [name, description, JSON.stringify(ingredients), image, url, category, id, uid, n(prep_minutes), n(cook_minutes), n(servings), notes || null]
       );
       // 換咗相：舊嗰張（如果係我哋自己存嘅）唔再有用，清走
       if (prev.rows[0].image && prev.rows[0].image !== image) {

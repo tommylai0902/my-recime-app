@@ -31,7 +31,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { name, description, image, ingredients, url, category, time_minutes } = req.body;
+    const { name, description, image, ingredients, url, category, prep_minutes, cook_minutes, servings, notes } = req.body;
     if (!name || !description || !ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
       res.status(400).json({ error: '名稱、描述和原料為必填項，且原料必須為非空陣列' });
       return;
@@ -40,11 +40,12 @@ export default async function handler(req, res) {
       res.status(400).json({ error: '請上載一張食譜圖片' });
       return;
     }
+    const n = (v) => (Number.isFinite(v) ? v : null);
     const result = await pool.query(
-      `INSERT INTO recipes (name, description, image, ingredients, url, category, user_id, time_minutes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO recipes (name, description, image, ingredients, url, category, user_id, prep_minutes, cook_minutes, servings, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
-      [name, description, image, JSON.stringify(ingredients), url, category, uid, Number.isFinite(time_minutes) ? time_minutes : null]
+      [name, description, image, JSON.stringify(ingredients), url, category, uid, n(prep_minutes), n(cook_minutes), n(servings), notes || null]
     );
     res.status(201).json(result.rows[0]);
     return;

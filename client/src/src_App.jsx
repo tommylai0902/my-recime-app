@@ -72,15 +72,21 @@ const STR = {
     category: '分類',
     imageUrl: '圖片網址',
     imageRequiredHint: '新增食譜要有一張圖片（掃描/上載/匯入會自動填，或者自己貼網址）',
-    prepTime: '需時（分鐘）',
+    prepMinLabel: '準備（分鐘）',
+    cookMinLabel: '製作（分鐘）',
+    servingsLabel: '份量（人）',
     minutesAbbrev: '分鐘',
     itemsLabel: '項材料',
+    servingsUnit: '人份',
     changeThumbnail: '🖼 更改縮圖',
     thumbUpdating: '更新緊⋯⋯',
     thumbFailed: '更改縮圖失敗',
     recipeUrl: '食譜連結',
     ingredients: '原料（用逗號分隔）',
     description: '描述',
+    stepsHeading: '做法',
+    notesHeading: '備注',
+    notesPh: '備注（可選）：小貼士、變化、下次改進嘅地方⋯',
     add: '新增食譜',
     update: '更新食譜',
     cancelEdit: '取消編輯',
@@ -161,15 +167,21 @@ const STR = {
     category: 'Category',
     imageUrl: 'Image URL',
     imageRequiredHint: 'New recipes need a photo (scan/upload/import auto-fills this, or paste a URL)',
-    prepTime: 'Time needed (minutes)',
+    prepMinLabel: 'Prep (min)',
+    cookMinLabel: 'Cook (min)',
+    servingsLabel: 'Servings',
     minutesAbbrev: 'min',
     itemsLabel: 'items',
+    servingsUnit: 'servings',
     changeThumbnail: '🖼 Change thumbnail',
     thumbUpdating: 'Updating…',
     thumbFailed: 'Failed to update thumbnail',
     recipeUrl: 'Recipe link',
     ingredients: 'Ingredients (comma separated)',
     description: 'Description',
+    stepsHeading: 'Method',
+    notesHeading: 'Notes',
+    notesPh: 'Notes (optional): tips, variations, what to change next time…',
     add: 'Add recipe',
     update: 'Update recipe',
     cancelEdit: 'Cancel edit',
@@ -294,7 +306,10 @@ const emptyRecipe = {
   ingredients: '',
   url: '',
   category: '',
-  time_minutes: '',
+  prep_minutes: '',
+  cook_minutes: '',
+  servings: '',
+  notes: '',
 };
 
 // 縮到最長邊 1024px 再轉 base64，避免 request body 過大
@@ -369,6 +384,7 @@ const App = () => {
   const [catFilter, setCatFilter] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [viewRecipe, setViewRecipe] = useState(null);
+  const [detailTab, setDetailTab] = useState('steps');
   const [thumbBusy, setThumbBusy] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
@@ -484,7 +500,9 @@ const App = () => {
       description: data.description,
       ingredients: data.ingredients.join(', '),
       image: data.image || '',
-      time_minutes: Number.isFinite(data.time_minutes) ? String(data.time_minutes) : '',
+      prep_minutes: Number.isFinite(data.prep_minutes) ? String(data.prep_minutes) : '',
+      cook_minutes: Number.isFinite(data.cook_minutes) ? String(data.cook_minutes) : '',
+      servings: Number.isFinite(data.servings) ? String(data.servings) : '',
       url: sourceUrl,
     });
     setEditId(null);
@@ -530,7 +548,10 @@ const App = () => {
         image: uploaded.url,
         url: viewRecipe.url,
         category: viewRecipe.category,
-        time_minutes: viewRecipe.time_minutes,
+        prep_minutes: viewRecipe.prep_minutes,
+        cook_minutes: viewRecipe.cook_minutes,
+        servings: viewRecipe.servings,
+        notes: viewRecipe.notes,
       });
       setViewRecipe(updated);
       fetchRecipes();
@@ -583,7 +604,9 @@ const App = () => {
       ...form,
       category: normalizeCat(form.category),
       ingredients: form.ingredients.split(/[,\n]/).map(s => s.trim()).filter(Boolean),
-      time_minutes: form.time_minutes === '' ? null : Number(form.time_minutes),
+      prep_minutes: form.prep_minutes === '' ? null : Number(form.prep_minutes),
+      cook_minutes: form.cook_minutes === '' ? null : Number(form.cook_minutes),
+      servings: form.servings === '' ? null : Number(form.servings),
     };
     if (editId) {
       await axios.put(`/api/recipes/${editId}`, payload);
@@ -604,7 +627,10 @@ const App = () => {
       ingredients: Array.isArray(recipe.ingredients)
         ? recipe.ingredients.join(', ')
         : recipe.ingredients,
-      time_minutes: Number.isFinite(recipe.time_minutes) ? String(recipe.time_minutes) : '',
+      prep_minutes: Number.isFinite(recipe.prep_minutes) ? String(recipe.prep_minutes) : '',
+      cook_minutes: Number.isFinite(recipe.cook_minutes) ? String(recipe.cook_minutes) : '',
+      servings: Number.isFinite(recipe.servings) ? String(recipe.servings) : '',
+      notes: recipe.notes || '',
     });
     setEditId(recipe.id);
     setAddOpen(true);
@@ -859,17 +885,40 @@ const App = () => {
               />
               {!editId && <p className="text-xs text-gray-400 mt-1">{t.imageRequiredHint}</p>}
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 dark:text-gray-300 mb-1">{t.prepTime}</label>
-              <input
-                type="number"
-                min="0"
-                name="time_minutes"
-                placeholder={t.prepTime}
-                value={form.time_minutes}
-                onChange={handleChange}
-                className="w-full p-2 border dark:border-gray-600 rounded"
-              />
+            <div className="mb-4 grid grid-cols-3 gap-2">
+              <div>
+                <label className="block text-gray-700 dark:text-gray-300 mb-1 text-sm">{t.prepMinLabel}</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="prep_minutes"
+                  value={form.prep_minutes}
+                  onChange={handleChange}
+                  className="w-full p-2 border dark:border-gray-600 rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 dark:text-gray-300 mb-1 text-sm">{t.cookMinLabel}</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="cook_minutes"
+                  value={form.cook_minutes}
+                  onChange={handleChange}
+                  className="w-full p-2 border dark:border-gray-600 rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 dark:text-gray-300 mb-1 text-sm">{t.servingsLabel}</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="servings"
+                  value={form.servings}
+                  onChange={handleChange}
+                  className="w-full p-2 border dark:border-gray-600 rounded"
+                />
+              </div>
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 dark:text-gray-300 mb-1">{t.recipeUrl}</label>
@@ -902,6 +951,17 @@ const App = () => {
                 onChange={handleChange}
                 required
                 rows={5}
+                className="w-full p-2 border dark:border-gray-600 rounded resize-y"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 dark:text-gray-300 mb-1">{t.notesHeading}</label>
+              <textarea
+                name="notes"
+                placeholder={t.notesPh}
+                value={form.notes}
+                onChange={handleChange}
+                rows={3}
                 className="w-full p-2 border dark:border-gray-600 rounded resize-y"
               />
             </div>
@@ -977,10 +1037,14 @@ const App = () => {
             <div className="grid grid-cols-2 gap-3">
               {shownRecipes.map((recipe) => {
                 const count = Array.isArray(recipe.ingredients) ? recipe.ingredients.length : 0;
+                const totalMin = (recipe.prep_minutes || 0) + (recipe.cook_minutes || 0);
                 return (
                   <button
                     key={recipe.id}
-                    onClick={() => setViewRecipe(recipe)}
+                    onClick={() => {
+                      setViewRecipe(recipe);
+                      setDetailTab('steps');
+                    }}
                     className="text-left bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-xl overflow-hidden shadow"
                   >
                     {recipe.image ? (
@@ -993,7 +1057,7 @@ const App = () => {
                     <div className="p-2">
                       <p className="font-bold text-sm line-clamp-2">{recipe.name}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {recipe.time_minutes ? `⏱ ${recipe.time_minutes} ${t.minutesAbbrev} ・ ` : ''}
+                        {totalMin ? `⏱ ${totalMin} ${t.minutesAbbrev} ・ ` : ''}
                         🛒 {count} {t.itemsLabel}
                       </p>
                     </div>
@@ -1022,25 +1086,57 @@ const App = () => {
                   <input type="file" accept="image/*" onChange={handleChangeThumbnail} disabled={thumbBusy} className="hidden" />
                 </label>
                 <h2 className="text-lg font-bold">{viewRecipe.name}</h2>
-                <p>
-                  <strong>{t.categoryLabel}</strong>{catLabel(viewRecipe.category, lang)}
-                  {viewRecipe.time_minutes ? ` ・ ⏱ ${viewRecipe.time_minutes} ${t.minutesAbbrev}` : ''}
-                </p>
-                <p className="whitespace-pre-line">{formatSteps(viewRecipe.description)}</p>
-                {Array.isArray(viewRecipe.ingredients) && viewRecipe.ingredients.length > 0 && (
-                  <>
-                    <p className="font-bold mt-4 mb-1">{t.ingredientsHeading}</p>
-                    <ul className="list-disc ml-6">
-                      {viewRecipe.ingredients.map((item, idx) => <li key={idx}>{item}</li>)}
-                    </ul>
-                  </>
+                {catLabel(viewRecipe.category, lang) && (
+                  <span className="inline-block bg-orange-100 dark:bg-gray-700 text-orange-700 dark:text-orange-300 text-xs font-bold px-2 py-1 rounded-full mt-1">
+                    {catLabel(viewRecipe.category, lang)}
+                  </span>
                 )}
-                {viewRecipe.url && (
-                  <p>
-                    🔗 <a href={viewRecipe.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{t.link}</a>
+                {(viewRecipe.prep_minutes || viewRecipe.cook_minutes || viewRecipe.servings) && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    {viewRecipe.prep_minutes ? `⏱ ${t.prepMinLabel} ${viewRecipe.prep_minutes} ${t.minutesAbbrev}　` : ''}
+                    {viewRecipe.cook_minutes ? `🍳 ${t.cookMinLabel} ${viewRecipe.cook_minutes} ${t.minutesAbbrev}　` : ''}
+                    {viewRecipe.servings ? `🍽 ${viewRecipe.servings} ${t.servingsUnit}` : ''}
                   </p>
                 )}
-                <div className="mt-3 flex gap-2">
+
+                <div className="flex gap-4 mt-4 mb-3 border-b dark:border-gray-600">
+                  {['steps', 'ingredients', 'notes'].map((k) => (
+                    <button
+                      key={k}
+                      onClick={() => setDetailTab(k)}
+                      className={`pb-2 px-1 font-bold text-sm border-b-2 -mb-px ${
+                        detailTab === k
+                          ? 'border-orange-500 text-orange-600 dark:text-orange-400'
+                          : 'border-transparent text-gray-500 dark:text-gray-400'
+                      }`}
+                    >
+                      {k === 'steps' ? t.stepsHeading : k === 'ingredients' ? t.ingredientsHeading : t.notesHeading}
+                    </button>
+                  ))}
+                </div>
+
+                {detailTab === 'steps' && (
+                  <p className="whitespace-pre-line">{formatSteps(viewRecipe.description)}</p>
+                )}
+                {detailTab === 'ingredients' && Array.isArray(viewRecipe.ingredients) && (
+                  <ul className="list-disc ml-6">
+                    {viewRecipe.ingredients.map((item, idx) => <li key={idx}>{item}</li>)}
+                  </ul>
+                )}
+                {detailTab === 'notes' && (
+                  <>
+                    <p className="whitespace-pre-line text-gray-700 dark:text-gray-300">
+                      {viewRecipe.notes || '—'}
+                    </p>
+                    {viewRecipe.url && (
+                      <p className="mt-3">
+                        🔗 <a href={viewRecipe.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{t.link}</a>
+                      </p>
+                    )}
+                  </>
+                )}
+
+                <div className="mt-4 flex gap-2">
                   <button
                     onClick={() => {
                       const r = viewRecipe;

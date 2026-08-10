@@ -40,6 +40,17 @@ function parseDurationMinutes(iso) {
   return Number(m[1] || 0) * 60 + Number(m[2] || 0);
 }
 
+// recipeYield 可以係數字、"4 servings" 呢類字串，或者陣列
+function parseServings(y) {
+  const v = [].concat(y || [])[0];
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
+    const m = v.match(/\d+/);
+    return m ? Number(m[0]) : null;
+  }
+  return null;
+}
+
 // IG caption 本身已經寫晒材料同步驟嘅話，直接用原文，唔使 AI
 function parseCaptionRecipe(og) {
   // IG og:description 格式：`995K likes, 123 comments - user on Jan 1: "caption內文"`
@@ -120,7 +131,9 @@ function fromJsonLd(html) {
           ingredients: ingredients.map(decode),
           description: decode([n.description, steps].filter(Boolean).join(' ')).slice(0, 3000),
           image: firstImageUrl(n.image),
-          time_minutes: parseDurationMinutes(n.totalTime) ?? parseDurationMinutes(n.cookTime) ?? parseDurationMinutes(n.prepTime),
+          prep_minutes: parseDurationMinutes(n.prepTime),
+          cook_minutes: parseDurationMinutes(n.cookTime) ?? parseDurationMinutes(n.totalTime),
+          servings: parseServings(n.recipeYield),
         };
       }
     } catch {}
