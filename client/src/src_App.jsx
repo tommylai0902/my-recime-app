@@ -1452,7 +1452,7 @@ const App = () => {
                     {Array.isArray(viewRecipe.notes) && viewRecipe.notes.length > 0 ? (
                       <ul className="mt-3 space-y-3">
                         {viewRecipe.notes.map((n, idx) => (
-                          <li key={idx} className="border-l-2 border-orange-300 dark:border-orange-600 pl-3">
+                          <li key={idx} className="rounded-lg border-l-4 border dark:border-gray-600 border-l-orange-400 dark:border-l-orange-500 bg-gray-50 dark:bg-gray-700 p-3 shadow-sm">
                             <div className="flex items-start justify-between gap-2">
                               <p className="text-xs text-gray-400">{n.date}</p>
                               {editingNoteIdx !== idx && (
