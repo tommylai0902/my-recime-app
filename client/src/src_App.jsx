@@ -1387,12 +1387,15 @@ const App = () => {
                                 <div key={m.label} style={{ width: `${m.pct}%`, backgroundColor: m.color }} />
                               ))}
                             </div>
-                            <div className="space-y-1.5">
+                            <div className="grid grid-cols-3 gap-2">
                               {macros.map((m) => (
-                                <div key={m.label} className="flex items-center gap-2 text-sm">
-                                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
-                                  <span className="text-gray-700 dark:text-gray-300 flex-1">{m.label}</span>
-                                  <span className="font-bold text-gray-900 dark:text-white">{Math.round(m.grams)} g</span>
+                                <div
+                                  key={m.label}
+                                  className="rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-3 text-center"
+                                >
+                                  <span className="w-2.5 h-2.5 rounded-full inline-block mb-1" style={{ backgroundColor: m.color }} />
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{m.label}</p>
+                                  <p className="font-bold text-gray-900 dark:text-white">{Math.round(m.grams)} g</p>
                                 </div>
                               ))}
                             </div>
