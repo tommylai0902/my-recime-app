@@ -32,7 +32,7 @@ const STR = {
     tab_plan: '餐單',
     tab_shopping: '購物清單',
     tab_insights: '統計',
-    tagline: '將你嘅食譜放上世界地圖',
+    tagline: '食遍全世界',
     globeHint: '撳個標記即刻去嗰個菜系嘅食譜',
     settings: '設定',
     language: '語言',
@@ -139,7 +139,7 @@ const STR = {
     tab_plan: 'Meal Plan',
     tab_shopping: 'Shopping',
     tab_insights: 'Insights',
-    tagline: 'Your recipes on the world map',
+    tagline: 'A world of flavour at your fingertips',
     globeHint: 'Tap a marker to jump to that cuisine',
     settings: 'Settings',
     language: 'Language',
@@ -881,7 +881,7 @@ const App = () => {
 
       {tab === 'home' && (
         <div>
-          <p className="font-bold text-gray-900 dark:text-white">{t.tagline}</p>
+          <p className="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">{t.tagline}</p>
           <Suspense fallback={<div style={{ height: 420 }} className="flex items-center justify-center text-gray-400">{t.loading}</div>}>
             <GlobeView
               points={buildGlobePoints(recipes, lang)}
