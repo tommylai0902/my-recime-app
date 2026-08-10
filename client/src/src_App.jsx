@@ -1256,7 +1256,7 @@ const App = () => {
                             onClick={() => setCurrentStep(i)}
                             className={`whitespace-pre-line rounded-lg p-3 cursor-pointer transition-all duration-200 ${
                               i === idx
-                                ? 'bg-orange-50 dark:bg-gray-700 border-2 border-orange-400 shadow-md scale-[1.03] font-semibold'
+                                ? 'bg-orange-50 dark:bg-gray-700 border border-orange-300 dark:border-orange-500/60 shadow-[0_0_14px_4px_rgba(251,146,60,0.55)] scale-[1.03] font-semibold'
                                 : 'opacity-50'
                             }`}
                           >
