@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { getUserId } from '../_utils.js';
+import { getUserId, maybeDeleteBlob } from '../_utils.js';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -30,26 +30,35 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
       const { name, description, ingredients, image, url, category } = req.body;
+      const prev = await pool.query(
+        'SELECT image FROM recipes WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+        [id, uid]
+      );
+      if (prev.rowCount === 0) {
+        return res.status(404).json({ error: '找不到要更新的食譜' });
+      }
       const result = await pool.query(
         `UPDATE recipes SET name = $1, description = $2, ingredients = $3, image = $4, url = $5, category = $6,
                 nutrition = NULL
          WHERE id = $7 AND (user_id = $8 OR user_id IS NULL) RETURNING *`,
         [name, description, JSON.stringify(ingredients), image, url, category, id, uid]
       );
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: '找不到要更新的食譜' });
+      // 換咗相：舊嗰張（如果係我哋自己存嘅）唔再有用，清走
+      if (prev.rows[0].image && prev.rows[0].image !== image) {
+        await maybeDeleteBlob(prev.rows[0].image);
       }
       return res.status(200).json(result.rows[0]);
     }
 
     if (req.method === 'DELETE') {
       const result = await pool.query(
-        'DELETE FROM recipes WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+        'DELETE FROM recipes WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING image',
         [id, uid]
       );
       if (result.rowCount === 0) {
         return res.status(404).json({ error: '找不到要刪除的食譜' });
       }
+      await maybeDeleteBlob(result.rows[0].image);
       return res.status(200).json({ message: '刪除成功' });
     }
 
