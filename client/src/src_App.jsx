@@ -33,6 +33,9 @@ const STR = {
     tab_insights: '統計',
     tagline: '將你嘅食譜放上世界地圖',
     globeHint: '撳個標記即刻去嗰個菜系嘅食譜',
+    settings: '設定',
+    language: '語言',
+    themeLabel: '主題',
     converter: '⚖️ 單位換算',
     convAmount: '數量',
     convNote: '＊g↔ml 視乎材料密度，記得揀返啱嘅材料',
@@ -110,6 +113,9 @@ const STR = {
     tab_insights: 'Insights',
     tagline: 'Your recipes on the world map',
     globeHint: 'Tap a marker to jump to that cuisine',
+    settings: 'Settings',
+    language: 'Language',
+    themeLabel: 'Theme',
     converter: '⚖️ Unit converter',
     convAmount: 'Amount',
     convNote: '* g↔ml depends on ingredient density — pick the right one',
@@ -309,6 +315,7 @@ const App = () => {
   const [authBusy, setAuthBusy] = useState(false);
 
   const [tab, setTab] = useState('home');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [recipes, setRecipes] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [form, setForm] = useState(emptyRecipe);
@@ -607,39 +614,61 @@ const App = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans">
     <div className="max-w-2xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-6 relative">
         <h1 className="text-2xl font-bold">{t.title}</h1>
-        <div className="flex gap-2 items-center">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="border border-gray-400 text-sm font-bold py-1 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-          {langButton}
-          <button
-            type="button"
-            onClick={logout}
-            className="border border-red-400 text-red-500 text-sm font-bold py-1 px-3 rounded hover:bg-red-50 dark:hover:bg-gray-700"
-          >
-            {t.logout}
-          </button>
-        </div>
-      </div>
-
-      <div className="flex gap-2 mb-6">
-        {['home', 'recipes', 'plan', 'shopping', 'insights'].map((k) => (
-          <button
-            key={k}
-            onClick={() => setTab(k)}
-            className={`flex-1 py-2 rounded font-bold text-sm sm:text-base ${
-              tab === k ? 'bg-orange-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border'
-            }`}
-          >
-            {t['tab_' + k]}
-          </button>
-        ))}
+        <button
+          type="button"
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="border border-gray-400 dark:border-gray-500 text-xl font-bold py-1 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+          aria-label="menu"
+        >
+          ☰
+        </button>
+        {menuOpen && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+            <div className="absolute right-0 top-12 z-20 w-60 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-xl shadow-xl p-2">
+              {['home', 'recipes', 'plan', 'shopping', 'insights'].map((k) => (
+                <button
+                  key={k}
+                  onClick={() => {
+                    setTab(k);
+                    setMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg font-bold ${
+                    tab === k ? 'bg-orange-500 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {t['tab_' + k]}
+                </button>
+              ))}
+              <hr className="my-2 border-gray-200 dark:border-gray-600" />
+              <p className="px-3 py-1 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">{t.settings}</p>
+              <div className="flex items-center justify-between py-1 px-3">
+                <span className="text-sm">{t.language}</span>
+                {langButton}
+              </div>
+              <div className="flex items-center justify-between py-1 px-3">
+                <span className="text-sm">{t.themeLabel}</span>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="border border-gray-400 text-sm font-bold py-1 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  {theme === 'dark' ? '☀️' : '🌙'}
+                </button>
+              </div>
+              <hr className="my-2 border-gray-200 dark:border-gray-600" />
+              <button
+                type="button"
+                onClick={logout}
+                className="w-full text-left py-2 px-3 rounded-lg font-bold text-red-500 hover:bg-red-50 dark:hover:bg-gray-700"
+              >
+                {t.logout}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {tab === 'home' && (
