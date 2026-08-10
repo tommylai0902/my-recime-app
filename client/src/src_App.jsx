@@ -54,6 +54,11 @@ const STR = {
     fat: '脂肪',
     nutritionNote: '＊AI 估算值，僅供參考',
     addRecipe: '＋ 新增食譜',
+    sortNewest: '最新',
+    sortOldest: '最舊',
+    sortName: '名稱 A-Z',
+    sortTime: '需時（短到長）',
+    searchPh: '🔍 搜尋食譜',
     scanBtn: '📷 影相掃描',
     uploadBtn: '🖼 上載圖片',
     scanning: '辨識中⋯⋯',
@@ -152,6 +157,11 @@ const STR = {
     fat: 'Fat',
     nutritionNote: '* AI estimates, for reference only',
     addRecipe: '＋ Add Recipe',
+    sortNewest: 'Newest',
+    sortOldest: 'Oldest',
+    sortName: 'Name A-Z',
+    sortTime: 'Time (shortest first)',
+    searchPh: '🔍 Search recipes',
     scanBtn: '📷 Take a photo',
     uploadBtn: '🖼 Upload a photo',
     scanning: 'Identifying…',
@@ -389,6 +399,8 @@ const App = () => {
   const [editId, setEditId] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [catFilter, setCatFilter] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
+  const [searchQuery, setSearchQuery] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [viewRecipe, setViewRecipe] = useState(null);
   const [detailTab, setDetailTab] = useState('steps');
@@ -711,7 +723,21 @@ const App = () => {
   }
 
   const cats = [...new Set(recipes.map((r) => r.category).filter(Boolean))];
-  const shownRecipes = catFilter ? recipes.filter((r) => r.category === catFilter) : recipes;
+  const searchQ = searchQuery.trim().toLowerCase();
+  const shownRecipes = recipes
+    .filter((r) => !catFilter || r.category === catFilter)
+    .filter(
+      (r) =>
+        !searchQ ||
+        r.name.toLowerCase().includes(searchQ) ||
+        (Array.isArray(r.ingredients) && r.ingredients.some((i) => i.toLowerCase().includes(searchQ)))
+    )
+    .sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      if (sortBy === 'oldest') return a.id - b.id;
+      if (sortBy === 'time') return ((a.prep_minutes || 0) + (a.cook_minutes || 0)) - ((b.prep_minutes || 0) + (b.cook_minutes || 0));
+      return b.id - a.id; // newest
+    });
 
   const convNum = parseFloat(convVal);
   let conv = null;
@@ -806,15 +832,43 @@ const App = () => {
 
       {tab === 'recipes' && (
         <>
-          {!addOpen && (
+          <div className="flex items-center gap-2 mb-4">
+            <select
+              value={catFilter}
+              onChange={(e) => setCatFilter(e.target.value)}
+              className="p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm flex-shrink-0"
+            >
+              <option value="">{t.all}</option>
+              {cats.map((c) => (
+                <option key={c} value={c}>{catLabel(c, lang)}</option>
+              ))}
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="p-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-sm flex-shrink-0"
+            >
+              <option value="newest">{t.sortNewest}</option>
+              <option value="oldest">{t.sortOldest}</option>
+              <option value="name">{t.sortName}</option>
+              <option value="time">{t.sortTime}</option>
+            </select>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t.searchPh}
+              className="flex-1 min-w-0 p-2 border dark:border-gray-600 rounded text-sm"
+            />
             <button
               type="button"
               onClick={() => setAddOpen(true)}
-              className="mb-6 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-full"
+              aria-label={t.addRecipe}
+              className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold leading-none"
             >
-              {t.addRecipe}
+              ＋
             </button>
-          )}
+          </div>
           {addOpen && (
           <>
           <div className="flex gap-2 mb-4">
@@ -986,22 +1040,6 @@ const App = () => {
             </div>
           </form>
           </>
-          )}
-
-          {cats.length > 0 && (
-            <div className="flex gap-2 flex-wrap mb-4">
-              {['', ...cats].map((c) => (
-                <button
-                  key={c || '__all'}
-                  onClick={() => setCatFilter(c)}
-                  className={`text-sm font-bold py-1 px-3 rounded-full border dark:border-gray-600 ${
-                    catFilter === c ? 'bg-orange-500 text-white border-orange-500' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'
-                  }`}
-                >
-                  {c ? catLabel(c, lang) : t.all}
-                </button>
-              ))}
-            </div>
           )}
 
           {!loaded ? (
