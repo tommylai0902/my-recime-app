@@ -208,6 +208,11 @@ const CATS = [
   { code: 'other', zh: '其他', en: 'Other' },
 ];
 const catLabel = (v, lang) => (CATS.find((c) => c.code === v) || {})[lang] || v;
+// 冇相嗰啲食譜，縮圖用分類 emoji 頂住
+const CAT_EMOJI = {
+  chinese: '🥢', western: '🍝', japanese: '🍣', korean: '🍲', thai: '🌶️',
+  italian: '🍕', dessert: '🍰', soup: '🍜', snack: '🍟', other: '🍽️',
+};
 
 // 單位換算：g↔ml 靠密度（g/ml），cup=240ml tbsp=15ml tsp=5ml
 const DENSITY = { water: 1, milk: 1.03, oil: 0.92, flour: 0.53, sugar: 0.85, rice: 0.85, butter: 0.95, honey: 1.42 };
@@ -325,6 +330,7 @@ const App = () => {
   const [scanning, setScanning] = useState(false);
   const [catFilter, setCatFilter] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  const [viewRecipe, setViewRecipe] = useState(null);
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
   const [convVal, setConvVal] = useState('');
@@ -438,6 +444,7 @@ const App = () => {
       category: catLabel(data.category, lang),
       description: data.description,
       ingredients: data.ingredients.join(', '),
+      image: data.image || '',
       url: sourceUrl,
     });
     setEditId(null);
@@ -452,8 +459,14 @@ const App = () => {
     setScanning(true);
     try {
       const image = await compressImage(file);
-      const { data } = await axios.post('/api/scan-dish', { image, media_type: 'image/jpeg', lang });
-      fillForm(data);
+      // 認食譜同存相同時做；存相失敗都唔緊要，淨係冇縮圖，唔阻食譜辨識
+      const [scanRes, uploadRes] = await Promise.allSettled([
+        axios.post('/api/scan-dish', { image, media_type: 'image/jpeg', lang }),
+        axios.post('/api/upload-image', { image, media_type: 'image/jpeg' }),
+      ]);
+      if (scanRes.status !== 'fulfilled') throw scanRes.reason;
+      const uploadedUrl = uploadRes.status === 'fulfilled' ? uploadRes.value.data.url : '';
+      fillForm({ ...scanRes.value.data, image: uploadedUrl });
     } catch (err) {
       alert(t.scanFailedPrefix + errMsg(err));
     } finally {
@@ -530,10 +543,11 @@ const App = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm(t.confirmDelete)) return;
+    if (!window.confirm(t.confirmDelete)) return false;
     await axios.delete(`/api/recipes/${id}`);
     setShopSel((sel) => sel.filter((x) => x !== id));
     fetchRecipes();
+    return true;
   };
 
   const handleCancel = () => {
@@ -875,44 +889,75 @@ const App = () => {
           ) : shownRecipes.length === 0 ? (
             <p>{t.empty}</p>
           ) : (
-            shownRecipes.map((recipe) => (
-              <div key={recipe.id} className="bg-white dark:bg-gray-800 border dark:border-gray-600 rounded p-4 mb-4 shadow">
-                <h2 className="text-lg font-bold">{recipe.name}</h2>
-                <p><strong>{t.categoryLabel}</strong>{catLabel(recipe.category, lang)}</p>
-                <p className="whitespace-pre-line">{recipe.description}</p>
+            <div className="grid grid-cols-3 gap-1">
+              {shownRecipes.map((recipe) => (
+                <button
+                  key={recipe.id}
+                  onClick={() => setViewRecipe(recipe)}
+                  className="aspect-square overflow-hidden rounded bg-gray-200 dark:bg-gray-700"
+                >
+                  {recipe.image ? (
+                    <img src={recipe.image} alt={recipe.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-1 p-2 bg-gradient-to-br from-orange-300 to-orange-500 dark:from-gray-600 dark:to-gray-800">
+                      <span className="text-3xl">{CAT_EMOJI[recipe.category] || '🍽️'}</span>
+                      <span className="text-xs font-bold text-white text-center line-clamp-2">{recipe.name}</span>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {viewRecipe && (
+            <>
+              <div className="fixed inset-0 z-30 bg-black/60" onClick={() => setViewRecipe(null)} />
+              <div className="fixed inset-x-4 top-10 bottom-10 z-40 max-w-lg mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-y-auto p-6">
+                <button
+                  onClick={() => setViewRecipe(null)}
+                  className="float-right text-2xl leading-none text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  aria-label="close"
+                >
+                  &times;
+                </button>
+                {viewRecipe.image && (
+                  <img src={viewRecipe.image} alt={viewRecipe.name} className="w-full h-auto rounded mb-3" />
+                )}
+                <h2 className="text-lg font-bold">{viewRecipe.name}</h2>
+                <p><strong>{t.categoryLabel}</strong>{catLabel(viewRecipe.category, lang)}</p>
+                <p className="whitespace-pre-line">{viewRecipe.description}</p>
                 <ul className="list-disc ml-6">
-                  {Array.isArray(recipe.ingredients)
-                    ? recipe.ingredients.map((item, idx) => <li key={idx}>{item}</li>)
+                  {Array.isArray(viewRecipe.ingredients)
+                    ? viewRecipe.ingredients.map((item, idx) => <li key={idx}>{item}</li>)
                     : null}
                 </ul>
-                {recipe.image && (
-                  <img
-                    src={recipe.image}
-                    alt={recipe.name}
-                    className="max-w-full h-auto mt-2 rounded"
-                  />
-                )}
-                {recipe.url && (
+                {viewRecipe.url && (
                   <p>
-                    🔗 <a href={recipe.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{t.link}</a>
+                    🔗 <a href={viewRecipe.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{t.link}</a>
                   </p>
                 )}
-                <div className="mt-2 flex gap-2">
+                <div className="mt-3 flex gap-2">
                   <button
-                    onClick={() => handleEdit(recipe)}
+                    onClick={() => {
+                      const r = viewRecipe;
+                      setViewRecipe(null);
+                      handleEdit(r);
+                    }}
                     className="bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-1 px-3 rounded"
                   >
                     {t.edit}
                   </button>
                   <button
-                    onClick={() => handleDelete(recipe.id)}
+                    onClick={async () => {
+                      if (await handleDelete(viewRecipe.id)) setViewRecipe(null);
+                    }}
                     className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded"
                   >
                     {t.del}
                   </button>
                 </div>
               </div>
-            ))
+            </>
           )}
         </>
       )}

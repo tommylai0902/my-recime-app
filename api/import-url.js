@@ -25,6 +25,13 @@ function metaContent(html, prop) {
   return c ? decode(c[1]) : '';
 }
 
+// JSON-LD 嘅 image 可以係字串、字串陣列，或 {url: "..."} 物件（連陣列）
+function firstImageUrl(image) {
+  const v = [].concat(image || [])[0];
+  const url = typeof v === 'string' ? v : v && v.url;
+  return typeof url === 'string' ? url : '';
+}
+
 // IG caption 本身已經寫晒材料同步驟嘅話，直接用原文，唔使 AI
 function parseCaptionRecipe(og) {
   // IG og:description 格式：`995K likes, 123 comments - user on Jan 1: "caption內文"`
@@ -104,6 +111,7 @@ function fromJsonLd(html) {
           category: [].concat(n.recipeCategory || [])[0] || '',
           ingredients: ingredients.map(decode),
           description: decode([n.description, steps].filter(Boolean).join(' ')).slice(0, 3000),
+          image: firstImageUrl(n.image),
         };
       }
     } catch {}
@@ -137,6 +145,9 @@ export default async function handler(req, res) {
   const ld = fromJsonLd(html);
   if (ld) return res.status(200).json(ld);
 
+  // og:image 幾乎每個網站/IG post 都有（封面相），三條路徑（JSON-LD 冇匹配時）共用做縮圖
+  const ogImage = metaContent(html, 'og:image');
+
   // fallback：抽頁面文字俾 Gemini — og:description 行先（IG caption 喺呢度），body 文字跟尾
   const title = metaContent(html, 'og:title') || (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || '');
   const og = metaContent(html, 'og:description');
@@ -144,7 +155,7 @@ export default async function handler(req, res) {
   // caption 已經係完整食譜 → 直接用原文（即時、零 AI、保留原作者寫法）
   if (og) {
     const parsed = parseCaptionRecipe(og);
-    if (parsed) return res.status(200).json(parsed);
+    if (parsed) return res.status(200).json({ ...parsed, image: ogImage });
   }
   const body = decode(
     html
@@ -161,7 +172,7 @@ export default async function handler(req, res) {
   const t1 = Date.now();
   try {
     const recipe = await askGemini([{ text: (prompts[lang] || prompts.zh) + text }], recipeSchema, { fast: true });
-    res.status(200).json({ ...recipe, _ms: { fetch: t1 - t0, ai: Date.now() - t1 } });
+    res.status(200).json({ ...recipe, image: ogImage, _ms: { fetch: t1 - t0, ai: Date.now() - t1 } });
   } catch (err) {
     geminiError(res, err, 'gemini_failed');
   }
