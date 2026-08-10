@@ -1040,19 +1040,21 @@ const App = () => {
               <label className="block text-gray-700 dark:text-gray-300 mb-1">
                 {t.imageUrl}{!editId && ' *'}
               </label>
-              <input
-                name="image"
-                placeholder={t.imageUrl}
-                value={form.image}
-                onChange={handleChange}
-                required={!editId}
-                className="w-full p-2 border dark:border-gray-600 rounded"
-              />
+              <div className="flex gap-2 items-center">
+                <input
+                  name="image"
+                  placeholder={t.imageUrl}
+                  value={form.image}
+                  onChange={handleChange}
+                  required={!editId}
+                  className="flex-1 min-w-0 p-2 border dark:border-gray-600 rounded"
+                />
+                <label className={`shrink-0 whitespace-nowrap text-xs font-bold py-2 px-3 rounded-full border dark:border-gray-600 cursor-pointer ${thumbBusy ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                  {thumbBusy ? t.thumbUpdating : t.changeThumbnail}
+                  <input type="file" accept="image/*" onChange={handleFormPhotoPick} disabled={thumbBusy} className="hidden" />
+                </label>
+              </div>
               {!editId && <p className="text-xs text-gray-400 mt-1">{t.imageRequiredHint}</p>}
-              <label className={`inline-block mt-2 text-xs font-bold py-1 px-3 rounded-full border dark:border-gray-600 cursor-pointer ${thumbBusy ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
-                {thumbBusy ? t.thumbUpdating : t.changeThumbnail}
-                <input type="file" accept="image/*" onChange={handleFormPhotoPick} disabled={thumbBusy} className="hidden" />
-              </label>
             </div>
             <div className="mb-4 grid grid-cols-3 gap-2">
               <div>
