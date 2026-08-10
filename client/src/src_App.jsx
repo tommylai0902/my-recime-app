@@ -1,5 +1,6 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import axios from 'axios';
+import SquareCrop from './SquareCrop.jsx';
 
 const GlobeView = lazy(() => import('./GlobeView.jsx'));
 
@@ -81,6 +82,9 @@ const STR = {
     changeThumbnail: '🖼 更改縮圖',
     thumbUpdating: '更新緊⋯⋯',
     thumbFailed: '更改縮圖失敗',
+    cropTitle: '裁剪成正方形',
+    cropCancel: '取消',
+    cropConfirm: '確定',
     recipeUrl: '食譜連結',
     ingredients: '原料（用逗號分隔）',
     description: '描述',
@@ -176,6 +180,9 @@ const STR = {
     changeThumbnail: '🖼 Change thumbnail',
     thumbUpdating: 'Updating…',
     thumbFailed: 'Failed to update thumbnail',
+    cropTitle: 'Crop to square',
+    cropCancel: 'Cancel',
+    cropConfirm: 'Confirm',
     recipeUrl: 'Recipe link',
     ingredients: 'Ingredients (comma separated)',
     description: 'Description',
@@ -386,6 +393,7 @@ const App = () => {
   const [viewRecipe, setViewRecipe] = useState(null);
   const [detailTab, setDetailTab] = useState('steps');
   const [thumbBusy, setThumbBusy] = useState(false);
+  const [cropFile, setCropFile] = useState(null);
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
   const [convVal, setConvVal] = useState('');
@@ -533,13 +541,18 @@ const App = () => {
   };
 
   // 喺食譜詳情入面單獨換縮圖：存新相 → 帶埋現有資料 PUT 返個食譜（後端會自動刪舊相）
-  const handleChangeThumbnail = async (e) => {
+  const handleChangeThumbnail = (e) => {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file || !viewRecipe) return;
+    setCropFile(file); // 先裁做正方形，撳確定先真正上載
+  };
+
+  const handleCropConfirm = async (image) => {
+    setCropFile(null);
+    if (!viewRecipe) return;
     setThumbBusy(true);
     try {
-      const image = await compressImage(file);
       const { data: uploaded } = await axios.post('/api/upload-image', { image, media_type: 'image/jpeg' });
       const { data: updated } = await axios.put(`/api/recipes/${viewRecipe.id}`, {
         name: viewRecipe.name,
@@ -1079,7 +1092,7 @@ const App = () => {
                   &times;
                 </button>
                 {viewRecipe.image && (
-                  <img src={viewRecipe.image} alt={viewRecipe.name} className="w-full h-auto rounded mb-2" />
+                  <img src={viewRecipe.image} alt={viewRecipe.name} className="w-full aspect-square object-cover rounded mb-2" />
                 )}
                 <label className={`inline-block text-xs font-bold py-1 px-3 rounded-full border dark:border-gray-600 cursor-pointer mb-3 ${thumbBusy ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
                   {thumbBusy ? t.thumbUpdating : t.changeThumbnail}
@@ -1159,6 +1172,15 @@ const App = () => {
               </div>
             </>
           )}
+
+          <SquareCrop
+            file={cropFile}
+            onCancel={() => setCropFile(null)}
+            onConfirm={handleCropConfirm}
+            title={t.cropTitle}
+            cancelLabel={t.cropCancel}
+            confirmLabel={t.cropConfirm}
+          />
         </>
       )}
 
