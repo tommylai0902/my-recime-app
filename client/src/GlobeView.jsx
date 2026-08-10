@@ -17,20 +17,15 @@ export default function GlobeView({ points, height = 420, onSelect }) {
   useEffect(() => {
     const g = globeRef.current;
     if (!g) return;
-    g.controls().autoRotate = true;
-    g.controls().autoRotateSpeed = 1.4;
+    // 自轉係鏡頭喺度郁，背景星空會跟住轉，睇落好暈 — 淨係擺定個角度
+    g.controls().autoRotate = false;
     g.pointOfView({ lat: 23, lng: 110, altitude: 2.1 });
   }, [width]);
 
   const max = Math.max(...points.map((p) => p.count), 1);
 
-  const setSpin = (on) => {
-    const g = globeRef.current;
-    if (g) g.controls().autoRotate = on;
-  };
-
   return (
-    <div ref={wrapRef} onMouseEnter={() => setSpin(false)} onMouseLeave={() => setSpin(true)}>
+    <div ref={wrapRef}>
       {width > 0 && (
         <Globe
           ref={globeRef}
