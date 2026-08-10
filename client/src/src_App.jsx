@@ -94,6 +94,8 @@ const STR = {
     ingredients: '原料（用逗號分隔）',
     description: '描述',
     stepsHeading: '做法',
+    prevStep: '上一步',
+    nextStep: '下一步',
     nutritionHeading: '營養',
     nutritionLoading: '計緊營養⋯⋯',
     notesHeading: '備注',
@@ -203,6 +205,8 @@ const STR = {
     ingredients: 'Ingredients (comma separated)',
     description: 'Description',
     stepsHeading: 'Method',
+    prevStep: 'Previous',
+    nextStep: 'Next',
     nutritionHeading: 'Nutrition',
     nutritionLoading: 'Calculating…',
     notesHeading: 'Notes',
@@ -271,9 +275,9 @@ const CAT_EMOJI = {
   italian: '🍕', dessert: '🍰', soup: '🍜', snack: '🍟', other: '🍽️',
 };
 
-// 部分食譜（尤其舊掃描）成段做法冧埋一齊冇換行；偵測遞增編號步驟（1. 2. 3.…）自動拆行顯示
+// 部分食譜（尤其舊掃描）成段做法冧埋一齊冇換行；偵測遞增編號步驟（1. 2. 3.…）自動拆做一步一個元素
 const formatSteps = (text) => {
-  if (!text) return text;
+  if (!text) return [];
   const re = /(^|[。.!?！？\n:：])\s*(\d{1,2})[.、)]\s*/g;
   let expected = 1;
   const marks = [];
@@ -284,12 +288,8 @@ const formatSteps = (text) => {
       expected++;
     }
   }
-  if (marks.length < 2) return text; // 唔似編號步驟，原文照顯示
-  let result = text;
-  for (let i = marks.length - 1; i >= 0; i--) {
-    result = result.slice(0, marks[i]) + '\n' + result.slice(marks[i]);
-  }
-  return result.replace(/\n{2,}/g, '\n').trim();
+  if (marks.length < 2) return [text.trim()]; // 唔似編號步驟，當成一個步驟
+  return marks.map((start, i) => text.slice(start, marks[i + 1] ?? text.length).trim());
 };
 
 // 單位換算：g↔ml 靠密度（g/ml），cup=240ml tbsp=15ml tsp=5ml
@@ -415,6 +415,7 @@ const App = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [viewRecipe, setViewRecipe] = useState(null);
   const [detailTab, setDetailTab] = useState('steps');
+  const [currentStep, setCurrentStep] = useState(0);
   const [thumbBusy, setThumbBusy] = useState(false);
   const [cropFile, setCropFile] = useState(null);
   const [addingNote, setAddingNote] = useState(false);
@@ -517,6 +518,11 @@ const App = () => {
         .finally(() => setInsightsBusy(false));
     }
   }, [token, tab]);
+
+  // 換咗食譜（開新一個）先重設做法目前步驟，同一個食譜內部更新（如加備注）唔應該重設
+  useEffect(() => {
+    setCurrentStep(0);
+  }, [viewRecipe?.id]);
 
   // 撳入「營養」分頁先按需計：有就直接顯示，冇就叫 AI 計呢一個食譜（結果會存落 DB，下次即開）
   useEffect(() => {
@@ -1235,9 +1241,49 @@ const App = () => {
                   ))}
                 </div>
 
-                {detailTab === 'steps' && (
-                  <p className="whitespace-pre-line">{formatSteps(viewRecipe.description)}</p>
-                )}
+                {detailTab === 'steps' && (() => {
+                  const steps = formatSteps(viewRecipe.description);
+                  if (steps.length <= 1) {
+                    return <p className="whitespace-pre-line">{steps[0] || ''}</p>;
+                  }
+                  const idx = Math.min(currentStep, steps.length - 1);
+                  return (
+                    <div>
+                      <div className="space-y-2">
+                        {steps.map((s, i) => (
+                          <p
+                            key={i}
+                            onClick={() => setCurrentStep(i)}
+                            className={`whitespace-pre-line rounded-lg p-3 cursor-pointer transition-all duration-200 ${
+                              i === idx
+                                ? 'bg-orange-50 dark:bg-gray-700 border-2 border-orange-400 shadow-md scale-[1.03] font-semibold'
+                                : 'opacity-50'
+                            }`}
+                          >
+                            {s}
+                          </p>
+                        ))}
+                      </div>
+                      <div className="flex justify-between items-center mt-4">
+                        <button
+                          onClick={() => setCurrentStep((i) => Math.max(0, i - 1))}
+                          disabled={idx === 0}
+                          className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 font-bold disabled:opacity-40"
+                        >
+                          {t.prevStep}
+                        </button>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{idx + 1} / {steps.length}</span>
+                        <button
+                          onClick={() => setCurrentStep((i) => Math.min(steps.length - 1, i + 1))}
+                          disabled={idx === steps.length - 1}
+                          className="px-4 py-2 rounded-full bg-orange-500 text-white font-bold disabled:opacity-40"
+                        >
+                          {t.nextStep}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
                 {detailTab === 'ingredients' && (
                   <>
                     {Array.isArray(viewRecipe.ingredients) && (
