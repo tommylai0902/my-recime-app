@@ -970,7 +970,7 @@ const App = () => {
               type="button"
               onClick={() => setSearchOpen((s) => !s)}
               aria-label={t.searchPh}
-              className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full border dark:border-gray-600 ${
+              className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg border dark:border-gray-600 ${
                 searchOpen ? 'bg-orange-100 dark:bg-gray-600' : 'bg-white dark:bg-gray-800'
               }`}
             >
@@ -980,7 +980,7 @@ const App = () => {
               type="button"
               onClick={() => setAddOpen(true)}
               aria-label={t.addRecipe}
-              className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold leading-none ml-auto"
+              className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold leading-none ml-auto"
             >
               ＋
             </button>
