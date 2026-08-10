@@ -7,3 +7,14 @@
      .dark {
        color-scheme: dark;
      }
+
+     /* 星空背景：同地球用嗰張貼圖，加深色遮罩確保上面文字/卡片睇得清 */
+     .starfield,
+     .dark .starfield-app {
+       background-color: #05070d;
+       background-image:
+         linear-gradient(rgba(5, 7, 13, 0.78), rgba(5, 7, 13, 0.78)),
+         url('https://unpkg.com/three-globe/example/img/night-sky.png');
+       background-size: cover;
+       background-position: center;
+     }

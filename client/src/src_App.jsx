@@ -675,7 +675,7 @@ const App = () => {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-gray-900 font-sans text-white">
+      <div className="min-h-screen starfield font-sans text-white">
         <div className="max-w-2xl mx-auto p-6">
           <div className="flex justify-end pt-2">{langButton}</div>
           <div className="text-center mt-4">
@@ -754,7 +754,7 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans">
+    <div className="min-h-screen bg-gray-50 starfield-app text-gray-900 dark:text-gray-100 font-sans">
     <div className="max-w-2xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6 relative">
         <h1 className="text-2xl font-bold">{t.title}</h1>
