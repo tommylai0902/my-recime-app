@@ -94,6 +94,8 @@ const STR = {
     ingredients: '原料（用逗號分隔）',
     description: '描述',
     stepsHeading: '做法',
+    nutritionHeading: '營養',
+    nutritionLoading: '計緊營養⋯⋯',
     notesHeading: '備注',
     addNote: '➕ 加備注',
     saveNote: '儲存',
@@ -201,6 +203,8 @@ const STR = {
     ingredients: 'Ingredients (comma separated)',
     description: 'Description',
     stepsHeading: 'Method',
+    nutritionHeading: 'Nutrition',
+    nutritionLoading: 'Calculating…',
     notesHeading: 'Notes',
     addNote: '➕ Add note',
     saveNote: 'Save',
@@ -416,6 +420,7 @@ const App = () => {
   const [addingNote, setAddingNote] = useState(false);
   const [noteDraft, setNoteDraft] = useState('');
   const [noteBusy, setNoteBusy] = useState(false);
+  const [nutritionBusy, setNutritionBusy] = useState(false);
   const [editingNoteIdx, setEditingNoteIdx] = useState(null);
   const [editNoteDraft, setEditNoteDraft] = useState('');
   const [importUrl, setImportUrl] = useState('');
@@ -512,6 +517,19 @@ const App = () => {
         .finally(() => setInsightsBusy(false));
     }
   }, [token, tab]);
+
+  // 撳入「營養」分頁先按需計：有就直接顯示，冇就叫 AI 計呢一個食譜（結果會存落 DB，下次即開）
+  useEffect(() => {
+    if (detailTab !== 'nutrition' || !viewRecipe || viewRecipe.nutrition || nutritionBusy) return;
+    setNutritionBusy(true);
+    axios
+      .post('/api/recipe-nutrition', { id: viewRecipe.id })
+      .then(({ data }) => setViewRecipe((r) => (r && r.id === viewRecipe.id ? { ...r, nutrition: data } : r)))
+      .catch((err) => {
+        if (err.response?.status === 401) logout();
+      })
+      .finally(() => setNutritionBusy(false));
+  }, [detailTab, viewRecipe]);
 
   const setSlot = async (date, meal, rid) => {
     if (!rid) return;
@@ -1196,17 +1214,23 @@ const App = () => {
                 )}
 
                 <div className="flex gap-4 mt-4 mb-3 border-b dark:border-gray-600">
-                  {['steps', 'ingredients', 'notes'].map((k) => (
+                  {['steps', 'ingredients', 'nutrition', 'notes'].map((k) => (
                     <button
                       key={k}
                       onClick={() => setDetailTab(k)}
-                      className={`pb-2 px-1 font-bold text-sm border-b-2 -mb-px ${
+                      className={`pb-2 px-1 font-bold text-sm border-b-2 -mb-px whitespace-nowrap ${
                         detailTab === k
                           ? 'border-orange-500 text-orange-600 dark:text-orange-400'
                           : 'border-transparent text-gray-500 dark:text-gray-400'
                       }`}
                     >
-                      {k === 'steps' ? t.stepsHeading : k === 'ingredients' ? t.ingredientsHeading : t.notesHeading}
+                      {k === 'steps'
+                        ? t.stepsHeading
+                        : k === 'ingredients'
+                        ? t.ingredientsHeading
+                        : k === 'nutrition'
+                        ? t.nutritionHeading
+                        : t.notesHeading}
                     </button>
                   ))}
                 </div>
@@ -1249,6 +1273,47 @@ const App = () => {
                       )}
                       <p className="text-gray-400 text-xs mt-2">{t.convNote}</p>
                     </details>
+                  </>
+                )}
+                {detailTab === 'nutrition' && (
+                  <>
+                    {nutritionBusy ? (
+                      <p className="text-gray-400 text-sm">{t.nutritionLoading}</p>
+                    ) : viewRecipe.nutrition ? (
+                      (() => {
+                        const { calories, protein, carbs, fat } = viewRecipe.nutrition;
+                        const kcal = { protein: protein * 4, carbs: carbs * 4, fat: fat * 9 };
+                        const totalKcal = kcal.protein + kcal.carbs + kcal.fat || 1;
+                        const macros = [
+                          { label: t.protein, grams: protein, color: CHART_COLORS[0], pct: (kcal.protein / totalKcal) * 100 },
+                          { label: t.carbs, grams: carbs, color: CHART_COLORS[1], pct: (kcal.carbs / totalKcal) * 100 },
+                          { label: t.fat, grams: fat, color: CHART_COLORS[2], pct: (kcal.fat / totalKcal) * 100 },
+                        ];
+                        return (
+                          <div>
+                            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                              {Math.round(calories)} <span className="text-base font-normal text-gray-500 dark:text-gray-400">kcal</span>
+                            </p>
+                            <p className="text-xs text-gray-400 mb-3">{t.chartCalories}</p>
+                            <div className="flex h-3 rounded-full overflow-hidden mb-3">
+                              {macros.map((m) => (
+                                <div key={m.label} style={{ width: `${m.pct}%`, backgroundColor: m.color }} />
+                              ))}
+                            </div>
+                            <div className="space-y-1.5">
+                              {macros.map((m) => (
+                                <div key={m.label} className="flex items-center gap-2 text-sm">
+                                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
+                                  <span className="text-gray-700 dark:text-gray-300 flex-1">{m.label}</span>
+                                  <span className="font-bold text-gray-900 dark:text-white">{Math.round(m.grams)} g</span>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-gray-400 text-xs mt-3">{t.nutritionNote}</p>
+                          </div>
+                        );
+                      })()
+                    ) : null}
                   </>
                 )}
                 {detailTab === 'notes' && (
