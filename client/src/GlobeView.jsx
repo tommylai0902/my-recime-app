@@ -37,6 +37,7 @@ export default function GlobeView({ points, height = 420, onSelect }) {
           width={width}
           height={height}
           backgroundColor="rgba(0,0,0,0)"
+          backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
           globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
           bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
           atmosphereColor="#88bbff"
