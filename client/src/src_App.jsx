@@ -80,6 +80,8 @@ const STR = {
     imageRequiredHint: '新增食譜要有一張圖片（掃描/上載/匯入會自動填，或者自己貼網址）',
     prepMinLabel: '準備（分鐘）',
     cookMinLabel: '製作（分鐘）',
+    prepShort: '準備',
+    cookShort: '製作',
     servingsLabel: '份量（人）',
     minutesAbbrev: '分鐘',
     itemsLabel: '項材料',
@@ -209,6 +211,8 @@ const STR = {
     imageRequiredHint: 'New recipes need a photo (scan/upload/import auto-fills this, or paste a URL)',
     prepMinLabel: 'Prep (min)',
     cookMinLabel: 'Cook (min)',
+    prepShort: 'Prep',
+    cookShort: 'Cook',
     servingsLabel: 'Servings',
     minutesAbbrev: 'min',
     itemsLabel: 'items',
@@ -1403,8 +1407,9 @@ const App = () => {
                     )}
                     {/* 名同資料疊喺相底部，成張卡先維持到正方形 */}
                     <div className="absolute inset-x-0 bottom-0 p-2 pt-6 bg-gradient-to-t from-black/85 via-black/55 to-transparent text-white">
-                      <p className="font-bold text-sm line-clamp-2">{recipe.name}</p>
-                      <p className="text-xs text-gray-200 mt-0.5">
+                      <p className="font-bold text-xs line-clamp-2">{recipe.name}</p>
+                      {/* truncate 保證一行：卡片窄，寧願切走都唔好爆行 */}
+                      <p className="text-[10px] text-gray-200 mt-0.5 truncate">
                         {totalMin ? `⏱ ${totalMin} ${t.minutesAbbrev} ・ ` : ''}
                         🛒 {count} {t.itemsLabel}
                       </p>
@@ -1477,11 +1482,11 @@ const App = () => {
                   {showTranslated && viewRecipe.translation ? viewRecipe.translation.name : viewRecipe.name}
                 </h2>
                 {(viewRecipe.prep_minutes || viewRecipe.cook_minutes || viewRecipe.servings) && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    {viewRecipe.prep_minutes ? `⏱ ${t.prepMinLabel} ${viewRecipe.prep_minutes} ${t.minutesAbbrev}　` : ''}
-                    {viewRecipe.cook_minutes ? `🍳 ${t.cookMinLabel} ${viewRecipe.cook_minutes} ${t.minutesAbbrev}　` : ''}
-                    {viewRecipe.servings ? `🍽 ${viewRecipe.servings} ${t.servingsUnit}` : ''}
-                  </p>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 space-y-0.5">
+                    {viewRecipe.prep_minutes ? <p>⏱ {t.prepShort} {viewRecipe.prep_minutes} {t.minutesAbbrev}</p> : null}
+                    {viewRecipe.cook_minutes ? <p>🍳 {t.cookShort} {viewRecipe.cook_minutes} {t.minutesAbbrev}</p> : null}
+                    {viewRecipe.servings ? <p>🍽 {viewRecipe.servings} {t.servingsUnit}</p> : null}
+                  </div>
                 )}
 
                 <div className="flex gap-4 mt-4 mb-3 border-b dark:border-gray-600">
