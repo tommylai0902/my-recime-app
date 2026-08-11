@@ -541,7 +541,7 @@ const App = () => {
     setAuthMsg('');
     setAuthBusy(true);
     try {
-      await axios.post('/api/auth', { action: 'forgot', email: authEmail, lang });
+      await axios.post('/api/auth', { action: 'forgot', email: authEmail });
       setAuthMsg(t.resetSent);
     } catch (err) {
       setAuthErr(STR[lang][err.response?.data?.error] || t.server_error);

@@ -15,19 +15,16 @@ const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
 const signToken = (uid) => jwt.sign({ uid }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
-async function sendResetMail(to, link, lang) {
-  const key = process.env.RESEND_API_KEY;
-  const zh = lang !== 'en';
+// ponytail: 重設電郵一律用英文，唔跟app語言 —— 見 tommylai0902 要求
+async function sendResetMail(to, link) {
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+    headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'content-type': 'application/json' },
     body: JSON.stringify({
       from: process.env.RESET_MAIL_FROM || 'onboarding@resend.dev',
       to,
-      subject: zh ? '重設你嘅「我的食譜」密碼' : 'Reset your My Recipes password',
-      html: zh
-        ? `<p>撳下面條連結重設密碼（${RESET_TTL_MIN} 分鐘內有效）：</p><p><a href="${link}">${link}</a></p><p>如果唔係你要求嘅，唔使理呢封電郵。</p>`
-        : `<p>Click the link below to reset your password (valid for ${RESET_TTL_MIN} minutes):</p><p><a href="${link}">${link}</a></p><p>If you didn't request this, you can ignore this email.</p>`,
+      subject: 'Reset your My Recipes password',
+      html: `<p>Click the link below to reset your password (valid for ${RESET_TTL_MIN} minutes):</p><p><a href="${link}">${link}</a></p><p>If you didn't request this, you can ignore this email.</p>`,
     }),
   });
   if (!r.ok) {
@@ -39,7 +36,7 @@ async function sendResetMail(to, link, lang) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
-  const { action, username, password, email, token: resetToken, lang } = req.body || {};
+  const { action, username, password, email, token: resetToken } = req.body || {};
 
   try {
     // ---- 忘記密碼：寄重設連結 ----
@@ -58,7 +55,7 @@ export default async function handler(req, res) {
           [r.rows[0].id, sha256(raw)]
         );
         const base = process.env.APP_URL || 'https://my-recime-app.vercel.app';
-        await sendResetMail(mail, `${base}/?reset=${raw}`, lang);
+        await sendResetMail(mail, `${base}/?reset=${raw}`);
       }
       return res.status(200).json({ ok: true });
     }
