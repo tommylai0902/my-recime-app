@@ -772,7 +772,19 @@ const App = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm(t.confirmDelete)) return false;
-    await axios.delete(`/api/recipes/${id}`);
+    try {
+      await axios.delete(`/api/recipes/${id}`);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        logout();
+        return false;
+      }
+      // 404 = 呢個食譜喺第二部機/第二個分頁已經刪咗，照收工清走個殘影就得
+      if (err.response?.status !== 404) {
+        alert(errMsg(err));
+        return false;
+      }
+    }
     setShopSel((sel) => sel.filter((x) => x !== id));
     fetchRecipes();
     return true;
