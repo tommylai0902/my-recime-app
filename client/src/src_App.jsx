@@ -137,6 +137,22 @@ const STR = {
     username_taken: '用戶名已被使用',
     bad_credentials: '用戶名或密碼錯誤',
     server_error: '伺服器錯誤，請再試',
+    invalid_email: '電郵格式唔啱',
+    email_taken: '呢個電郵已經有人用咗',
+    reset_link_invalid: '重設連結已失效，請重新申請',
+    email_not_configured: '未設定電郵服務，暫時用唔到',
+    email_send_failed: '寄電郵失敗，請遲啲再試',
+    emailLabel: '電郵',
+    forgotPwd: '忘記密碼？',
+    sendResetLink: '寄重設連結',
+    resetSent: '如果呢個電郵有註冊過，重設連結已經寄咗出去（30分鐘內有效），記得check埋垃圾郵件。',
+    resetPwdTitle: '重設密碼',
+    newPassword: '新密碼',
+    confirmReset: '設定新密碼',
+    backToLogin: '返回登入',
+    emailForReset: '電郵（用嚟重設密碼）',
+    saveEmail: '儲存',
+    emailSaved: '電郵已儲存',
   },
   en: {
     title: '🍽 My Recipes',
@@ -250,6 +266,22 @@ const STR = {
     username_taken: 'Username already taken',
     bad_credentials: 'Wrong username or password',
     server_error: 'Server error, please try again',
+    invalid_email: 'Invalid email address',
+    email_taken: 'That email is already in use',
+    reset_link_invalid: 'Reset link is invalid or expired, please request a new one',
+    email_not_configured: 'Email service is not configured yet',
+    email_send_failed: 'Could not send the email, please try again later',
+    emailLabel: 'Email',
+    forgotPwd: 'Forgot password?',
+    sendResetLink: 'Send reset link',
+    resetSent: 'If that email is registered, a reset link has been sent (valid for 30 minutes). Check your spam folder too.',
+    resetPwdTitle: 'Reset password',
+    newPassword: 'New password',
+    confirmReset: 'Set new password',
+    backToLogin: 'Back to login',
+    emailForReset: 'Email (for password reset)',
+    saveEmail: 'Save',
+    emailSaved: 'Email saved',
   },
 };
 
@@ -405,6 +437,13 @@ const App = () => {
   const [authPwd, setAuthPwd] = useState('');
   const [authErr, setAuthErr] = useState('');
   const [authBusy, setAuthBusy] = useState(false);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authMsg, setAuthMsg] = useState('');
+  // 電郵入面條重設連結係 /?reset=xxxx，有就直接入重設密碼畫面
+  const resetToken = new URLSearchParams(window.location.search).get('reset');
+  const [authMode, setAuthMode] = useState(resetToken ? 'reset' : 'login');
+  const [emailDraft, setEmailDraft] = useState('');
+  const [emailBusy, setEmailBusy] = useState(false);
 
   const [tab, setTab] = useState('home');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -470,20 +509,72 @@ const App = () => {
 
   const errMsg = (err) => STR[lang][err.response?.data?.error] || err.message;
 
+  const acceptLogin = (data) => {
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('username', data.username);
+    applyToken(data.token);
+    setToken(data.token);
+    setAuthPwd('');
+  };
+
   const handleAuth = async (action) => {
     setAuthErr('');
+    setAuthMsg('');
     setAuthBusy(true);
     try {
-      const { data } = await axios.post('/api/auth', { action, username: authUser, password: authPwd });
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('username', data.username);
-      applyToken(data.token);
-      setToken(data.token);
-      setAuthPwd('');
+      const { data } = await axios.post('/api/auth', {
+        action,
+        username: authUser,
+        password: authPwd,
+        ...(action === 'register' ? { email: authEmail } : {}),
+      });
+      acceptLogin(data);
     } catch (err) {
       setAuthErr(STR[lang][err.response?.data?.error] || t.server_error);
     } finally {
       setAuthBusy(false);
+    }
+  };
+
+  const handleForgot = async () => {
+    setAuthErr('');
+    setAuthMsg('');
+    setAuthBusy(true);
+    try {
+      await axios.post('/api/auth', { action: 'forgot', email: authEmail, lang });
+      setAuthMsg(t.resetSent);
+    } catch (err) {
+      setAuthErr(STR[lang][err.response?.data?.error] || t.server_error);
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const handleReset = async () => {
+    setAuthErr('');
+    setAuthMsg('');
+    setAuthBusy(true);
+    try {
+      const { data } = await axios.post('/api/auth', { action: 'reset', token: resetToken, password: authPwd });
+      window.history.replaceState({}, '', '/'); // 條連結用完就清走，唔好留喺網址列
+      acceptLogin(data);
+    } catch (err) {
+      setAuthErr(STR[lang][err.response?.data?.error] || t.server_error);
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const handleSaveEmail = async () => {
+    setEmailBusy(true);
+    try {
+      await axios.post('/api/auth', { action: 'set-email', email: emailDraft });
+      alert(t.emailSaved);
+      setEmailDraft('');
+    } catch (err) {
+      alert(STR[lang][err.response?.data?.error] || t.server_error);
+    } finally {
+      setEmailBusy(false);
     }
   };
 
@@ -819,36 +910,117 @@ const App = () => {
             <GlobeView points={buildGlobePoints([], lang)} height={360} />
           </Suspense>
           <div className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 p-6 rounded-xl shadow-xl max-w-sm mx-auto relative -mt-4">
-          <input
-            value={authUser}
-            onChange={(e) => setAuthUser(e.target.value)}
-            placeholder={t.username}
-            className="w-full p-2 border dark:border-gray-600 rounded mb-3"
-          />
-          <input
-            type="password"
-            value={authPwd}
-            onChange={(e) => setAuthPwd(e.target.value)}
-            placeholder={t.password}
-            className="w-full p-2 border dark:border-gray-600 rounded mb-4"
-          />
-          {authErr && <p className="text-red-600 text-sm mb-3">{authErr}</p>}
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleAuth('login')}
-              disabled={authBusy}
-              className="flex-1 bg-green-500 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded"
-            >
-              {t.login}
-            </button>
-            <button
-              onClick={() => handleAuth('register')}
-              disabled={authBusy}
-              className="flex-1 bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded"
-            >
-              {t.register}
-            </button>
-          </div>
+          {authMode === 'reset' ? (
+            <>
+              <p className="font-bold mb-3">{t.resetPwdTitle}</p>
+              <input
+                type="password"
+                value={authPwd}
+                onChange={(e) => setAuthPwd(e.target.value)}
+                placeholder={t.newPassword}
+                className="w-full p-2 border dark:border-gray-600 rounded mb-4"
+              />
+              {authErr && <p className="text-red-600 text-sm mb-3">{authErr}</p>}
+              <button
+                onClick={handleReset}
+                disabled={authBusy || !authPwd}
+                className="w-full bg-green-500 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded"
+              >
+                {t.confirmReset}
+              </button>
+              <button
+                onClick={() => {
+                  window.history.replaceState({}, '', '/');
+                  setAuthMode('login');
+                  setAuthErr('');
+                }}
+                className="w-full text-sm text-gray-500 dark:text-gray-400 mt-3 underline"
+              >
+                {t.backToLogin}
+              </button>
+            </>
+          ) : authMode === 'forgot' ? (
+            <>
+              <p className="font-bold mb-3">{t.forgotPwd}</p>
+              <input
+                type="email"
+                value={authEmail}
+                onChange={(e) => setAuthEmail(e.target.value)}
+                placeholder={t.emailLabel}
+                className="w-full p-2 border dark:border-gray-600 rounded mb-4"
+              />
+              {authErr && <p className="text-red-600 text-sm mb-3">{authErr}</p>}
+              {authMsg && <p className="text-green-600 text-sm mb-3">{authMsg}</p>}
+              <button
+                onClick={handleForgot}
+                disabled={authBusy || !authEmail}
+                className="w-full bg-green-500 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded"
+              >
+                {t.sendResetLink}
+              </button>
+              <button
+                onClick={() => {
+                  setAuthMode('login');
+                  setAuthErr('');
+                  setAuthMsg('');
+                }}
+                className="w-full text-sm text-gray-500 dark:text-gray-400 mt-3 underline"
+              >
+                {t.backToLogin}
+              </button>
+            </>
+          ) : (
+            <>
+              <input
+                value={authUser}
+                onChange={(e) => setAuthUser(e.target.value)}
+                placeholder={t.username}
+                className="w-full p-2 border dark:border-gray-600 rounded mb-3"
+              />
+              {authMode === 'register' && (
+                <input
+                  type="email"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder={t.emailForReset}
+                  className="w-full p-2 border dark:border-gray-600 rounded mb-3"
+                />
+              )}
+              <input
+                type="password"
+                value={authPwd}
+                onChange={(e) => setAuthPwd(e.target.value)}
+                placeholder={t.password}
+                className="w-full p-2 border dark:border-gray-600 rounded mb-4"
+              />
+              {authErr && <p className="text-red-600 text-sm mb-3">{authErr}</p>}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => (authMode === 'register' ? setAuthMode('login') : handleAuth('login'))}
+                  disabled={authBusy}
+                  className="flex-1 bg-green-500 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded"
+                >
+                  {t.login}
+                </button>
+                <button
+                  onClick={() => (authMode === 'register' ? handleAuth('register') : setAuthMode('register'))}
+                  disabled={authBusy}
+                  className="flex-1 bg-blue-500 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded"
+                >
+                  {t.register}
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  setAuthMode('forgot');
+                  setAuthErr('');
+                }}
+                className="w-full text-sm text-gray-500 dark:text-gray-400 mt-3 underline"
+              >
+                {t.forgotPwd}
+              </button>
+            </>
+          )}
           </div>
         </div>
       </div>
@@ -932,6 +1104,27 @@ const App = () => {
                 >
                   {theme === 'dark' ? '☀️' : '🌙'}
                 </button>
+              </div>
+              {/* 舊用戶未填過email，冇email就用唔到「忘記密碼」 */}
+              <div className="py-1 px-3">
+                <span className="text-sm">{t.emailForReset}</span>
+                <div className="flex gap-2 mt-1">
+                  <input
+                    type="email"
+                    value={emailDraft}
+                    onChange={(e) => setEmailDraft(e.target.value)}
+                    placeholder={t.emailLabel}
+                    className="flex-1 min-w-0 p-1 text-sm border dark:border-gray-600 rounded"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveEmail}
+                    disabled={emailBusy || !emailDraft.trim()}
+                    className="text-sm font-bold py-1 px-3 rounded border border-gray-400 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    {t.saveEmail}
+                  </button>
+                </div>
               </div>
               <hr className="my-2 border-gray-200 dark:border-gray-600" />
               <button
