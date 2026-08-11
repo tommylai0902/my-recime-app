@@ -48,6 +48,7 @@ const STR = {
     other: '其他',
     noInsights: '仲未有數據，加幾個食譜先啦！',
     chartCalories: '卡路里（每份）',
+    ofTotal: '全食譜共',
     chartMacros: '營養素（克／每份）',
     protein: '蛋白質',
     carbs: '碳水化合物',
@@ -179,6 +180,7 @@ const STR = {
     other: 'Other',
     noInsights: 'No data yet — add some recipes first!',
     chartCalories: 'Calories (per serving)',
+    ofTotal: 'recipe makes',
     chartMacros: 'Macros (g per serving)',
     protein: 'Protein',
     carbs: 'Carbs',
@@ -1615,7 +1617,10 @@ const App = () => {
                             <p className="text-3xl font-bold text-gray-900 dark:text-white">
                               {Math.round(calories)} <span className="text-base font-normal text-gray-500 dark:text-gray-400">kcal</span>
                             </p>
-                            <p className="text-xs text-gray-400 mb-3">{t.chartCalories}</p>
+                            <p className="text-xs text-gray-400 mb-3">
+                              {t.chartCalories}
+                              {viewRecipe.servings ? `　·　${t.ofTotal} ${viewRecipe.servings} ${t.servingsUnit}` : ''}
+                            </p>
                             <div className="flex h-3 rounded-full overflow-hidden mb-3">
                               {macros.map((m) => (
                                 <div key={m.label} style={{ width: `${m.pct}%`, backgroundColor: m.color }} />

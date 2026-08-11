@@ -29,18 +29,24 @@ export default async function handler(req, res) {
 
   try {
     const r = await pool.query(
-      'SELECT id, name, ingredients, nutrition FROM recipes WHERE id = $1 AND user_id = $2',
+      'SELECT id, name, ingredients, nutrition, servings FROM recipes WHERE id = $1 AND user_id = $2',
       [id, uid]
     );
     if (r.rowCount === 0) return res.status(404).json({ error: 'not_found' });
     const row = r.rows[0];
     if (row.nutrition) return res.status(200).json(row.nutrition);
 
+    // 材料寫嘅係成個食譜嘅總份量，要除返份數先係「每份」。
+    // 唔講清楚嘅話 AI 會自己作一個份量，同用戶填嘅份數對唔上。
     const est = await askGemini(
       [
         {
           text:
-            '估算呢個食譜「每一份」嘅營養：卡路里(kcal)、蛋白質/碳水化合物/脂肪（克）：\n\n' +
+            '以下材料係成個食譜嘅總份量。請先計算成個食譜嘅總營養，' +
+            (row.servings
+              ? `然後除以 ${row.servings}（呢個食譜總共 ${row.servings} 份），回傳「每一份」嘅數值。`
+              : '然後按材料份量自行判斷合理份數，回傳「每一份」嘅數值。') +
+            '需要：卡路里(kcal)、蛋白質/碳水化合物/脂肪（克）。\n\n' +
             `${row.name}: ${[].concat(row.ingredients || []).join('、')}`,
         },
       ],

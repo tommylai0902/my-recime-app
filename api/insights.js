@@ -27,7 +27,7 @@ const nutritionSchema = {
 async function backfillNutrition(uid) {
   const missing = (
     await pool.query(
-      `SELECT id, name, ingredients FROM recipes
+      `SELECT id, name, ingredients, servings FROM recipes
        WHERE user_id = $1 AND nutrition IS NULL LIMIT 25`,
       [uid]
     )
@@ -35,13 +35,19 @@ async function backfillNutrition(uid) {
   if (missing.length === 0) return;
 
   const lines = missing
-    .map((r) => `id=${r.id} ${r.name}: ${[].concat(r.ingredients || []).join('、')}`)
+    .map(
+      (r) =>
+        `id=${r.id} ${r.name}（總共 ${r.servings || '未指定'} 份）: ${[].concat(r.ingredients || []).join('、')}`
+    )
     .join('\n');
   const est = await askGemini(
     [
       {
         text:
-          '以下係食譜列表（每行一個，開頭係 id）。估算每個食譜「每一份」嘅營養：卡路里(kcal)、蛋白質/碳水化合物/脂肪（克）。id 照抄返：\n\n' +
+          '以下係食譜列表（每行一個，開頭係 id）。每行嘅材料份量係成個食譜嘅總數。' +
+          '請先計算每個食譜嘅總營養，再除以佢標示嘅份數，回傳「每一份」嘅數值' +
+          '（份數寫住「未指定」就按材料自行判斷合理份數）。' +
+          '需要：卡路里(kcal)、蛋白質/碳水化合物/脂肪（克）。id 照抄返：\n\n' +
           lines,
       },
     ],
