@@ -1325,7 +1325,7 @@ const App = () => {
                           </p>
                         ))}
                       </div>
-                      <div className="sticky bottom-0 -mx-6 px-6 pt-3 pb-1 mt-4 bg-white dark:bg-gray-800 border-t dark:border-gray-600 flex justify-between items-center">
+                      <div className="sticky bottom-0 -mx-6 px-6 pt-3 pb-2 mt-4 bg-white/60 dark:bg-gray-800/50 backdrop-blur-md flex justify-between items-center">
                         <button
                           onClick={() => setCurrentStep((i) => Math.max(0, i - 1))}
                           disabled={idx === 0}
