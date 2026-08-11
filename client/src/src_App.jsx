@@ -1216,14 +1216,14 @@ const App = () => {
                 <div className="flex justify-between items-center gap-1.5 mb-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {catLabel(viewRecipe.category, lang) && (
-                      <span className="inline-block bg-orange-100 dark:bg-gray-700 text-orange-700 dark:text-orange-300 text-xs font-bold px-2 py-1 rounded-full">
+                      <span className="inline-flex items-center h-8 bg-orange-100 dark:bg-gray-700 text-orange-700 dark:text-orange-300 text-xs font-bold px-3 rounded-full">
                         {catLabel(viewRecipe.category, lang)}
                       </span>
                     )}
                     <button
                       onClick={() => setShowTranslated((s) => !s)}
                       disabled={translateBusy}
-                      className="inline-block bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 text-gray-600 dark:text-gray-200 text-xs font-bold px-2 py-1 rounded-full disabled:opacity-50"
+                      className="inline-flex items-center h-8 bg-gray-100 dark:bg-gray-600 dark:border dark:border-gray-500 text-gray-600 dark:text-gray-200 text-xs font-bold px-3 rounded-full disabled:opacity-50"
                     >
                       {translateBusy ? '⏳' : showTranslated ? `🌐 ${t.showOriginal}` : `🌐 ${t.translate}`}
                     </button>
