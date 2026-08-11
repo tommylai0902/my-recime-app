@@ -948,7 +948,6 @@ const App = () => {
 
       {tab === 'home' && (
         <div>
-          <p className="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">{t.tagline}</p>
           <Suspense fallback={<div style={{ height: 420 }} className="flex items-center justify-center text-gray-400">{t.loading}</div>}>
             <GlobeView
               points={buildGlobePoints(recipes, lang)}
@@ -959,7 +958,8 @@ const App = () => {
               }}
             />
           </Suspense>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t.globeHint}</p>
+          <p className="text-3xl font-bold text-center text-gray-900 dark:text-white mt-4">{t.tagline}</p>
+          <p className="text-gray-500 dark:text-gray-400 text-xs text-center mt-2">{t.globeHint}</p>
         </div>
       )}
 
