@@ -533,6 +533,14 @@ const App = () => {
     setShowTranslated(false);
   }, [viewRecipe?.id]);
 
+  // 撳上/下一步之後，如果嗰步唔喺畫面入面就captured返出嚟（nearest：已經見到就唔郁）
+  useEffect(() => {
+    if (detailTab !== 'steps') return;
+    document
+      .querySelector(`[data-step-idx="${currentStep}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [currentStep, detailTab]);
+
   // 撳「翻譯」先按需計：有cache就直接顯示，冇就叫 AI 譯（結果會存落 DB，下次即顯）
   useEffect(() => {
     if (!showTranslated || !viewRecipe || viewRecipe.translation || translateBusy) return;
@@ -1305,8 +1313,9 @@ const App = () => {
                         {steps.map((s, i) => (
                           <p
                             key={i}
+                            data-step-idx={i}
                             onClick={() => setCurrentStep(i)}
-                            className={`whitespace-pre-line rounded-lg p-3 cursor-pointer transition-all duration-200 ${
+                            className={`whitespace-pre-line rounded-lg p-3 cursor-pointer transition-all duration-200 scroll-mb-24 scroll-mt-4 ${
                               i === idx
                                 ? 'bg-orange-50 dark:bg-gray-700 border border-orange-300 dark:border-orange-500/60 shadow-[0_0_14px_4px_rgba(251,146,60,0.55)] scale-[1.03] font-semibold'
                                 : 'opacity-50'
@@ -1316,7 +1325,7 @@ const App = () => {
                           </p>
                         ))}
                       </div>
-                      <div className="flex justify-between items-center mt-4">
+                      <div className="sticky bottom-0 -mx-6 px-6 pt-3 pb-1 mt-4 bg-white dark:bg-gray-800 border-t dark:border-gray-600 flex justify-between items-center">
                         <button
                           onClick={() => setCurrentStep((i) => Math.max(0, i - 1))}
                           disabled={idx === 0}
