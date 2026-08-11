@@ -28,7 +28,7 @@ async function backfillNutrition(uid) {
   const missing = (
     await pool.query(
       `SELECT id, name, ingredients FROM recipes
-       WHERE (user_id = $1 OR user_id IS NULL) AND nutrition IS NULL LIMIT 25`,
+       WHERE user_id = $1 AND nutrition IS NULL LIMIT 25`,
       [uid]
     )
   ).rows;
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     const byCategory = (
       await pool.query(
         `SELECT COALESCE(NULLIF(category, ''), '') AS category, COUNT(*)::int AS count
-         FROM recipes WHERE user_id = $1 OR user_id IS NULL
+         FROM recipes WHERE user_id = $1
          GROUP BY 1 ORDER BY count DESC`,
         [uid]
       )
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
       await pool.query(
         `SELECT name,
                 CASE WHEN jsonb_typeof(ingredients) = 'array' THEN jsonb_array_length(ingredients) ELSE 1 END AS count
-         FROM recipes WHERE user_id = $1 OR user_id IS NULL
+         FROM recipes WHERE user_id = $1
          ORDER BY count DESC, name`,
         [uid]
       )
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
                 (nutrition->>'carbs')::numeric AS carbs,
                 (nutrition->>'fat')::numeric AS fat
          FROM recipes
-         WHERE (user_id = $1 OR user_id IS NULL) AND nutrition IS NOT NULL
+         WHERE user_id = $1 AND nutrition IS NOT NULL
          ORDER BY 2 DESC`,
         [uid]
       )

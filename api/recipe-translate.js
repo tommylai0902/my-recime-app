@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
   try {
     const r = await pool.query(
-      'SELECT id, name, description, ingredients, translation FROM recipes WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+      'SELECT id, name, description, ingredients, translation FROM recipes WHERE id = $1 AND user_id = $2',
       [id, uid]
     );
     if (r.rowCount === 0) return res.status(404).json({ error: 'not_found' });

@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const result = await pool.query(
-        'SELECT * FROM recipes WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+        'SELECT * FROM recipes WHERE id = $1 AND user_id = $2',
         [id, uid]
       );
       if (result.rows.length === 0) {
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     if (req.method === 'PUT') {
       const { name, description, ingredients, image, url, category, prep_minutes, cook_minutes, servings, notes } = req.body;
       const prev = await pool.query(
-        'SELECT image FROM recipes WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)',
+        'SELECT image FROM recipes WHERE id = $1 AND user_id = $2',
         [id, uid]
       );
       if (prev.rowCount === 0) {
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       const result = await pool.query(
         `UPDATE recipes SET name = $1, description = $2, ingredients = $3, image = $4, url = $5, category = $6,
                 nutrition = NULL, translation = NULL, prep_minutes = $9, cook_minutes = $10, servings = $11, notes = COALESCE($12::jsonb, notes)
-         WHERE id = $7 AND (user_id = $8 OR user_id IS NULL) RETURNING *`,
+         WHERE id = $7 AND user_id = $8 RETURNING *`,
         [name, description, JSON.stringify(ingredients), image, url, category, id, uid, n(prep_minutes), n(cook_minutes), n(servings), notesParam]
       );
       // 換咗相：舊嗰張（如果係我哋自己存嘅）唔再有用，清走
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'DELETE') {
       const result = await pool.query(
-        'DELETE FROM recipes WHERE id = $1 AND (user_id = $2 OR user_id IS NULL) RETURNING image',
+        'DELETE FROM recipes WHERE id = $1 AND user_id = $2 RETURNING image',
         [id, uid]
       );
       if (result.rowCount === 0) {

@@ -36,7 +36,7 @@ export default async function handler(req, res) {
   }
 
   const result = await pool.query(
-    'SELECT name, ingredients FROM recipes WHERE id = ANY($1) AND (user_id = $2 OR user_id IS NULL)',
+    'SELECT name, ingredients FROM recipes WHERE id = ANY($1) AND user_id = $2',
     [ids, uid]
   );
   if (result.rows.length === 0) return res.status(404).json({ error: 'invalid_input' });

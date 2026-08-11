@@ -11,9 +11,8 @@ export default async function handler(req, res) {
   if (!uid) return res.status(401).json({ error: 'unauthorized' });
 
   if (req.method === 'GET') {
-    // user_id IS NULL = 登入功能之前嘅舊食譜，全部人都見到
     const result = await pool.query(
-      'SELECT * FROM recipes WHERE user_id = $1 OR user_id IS NULL ORDER BY id DESC',
+      'SELECT * FROM recipes WHERE user_id = $1 ORDER BY id DESC',
       [uid]
     );
     res.status(200).json(result.rows.map(row => {
