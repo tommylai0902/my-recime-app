@@ -17,8 +17,6 @@ const signToken = (uid) => jwt.sign({ uid }, process.env.JWT_SECRET, { expiresIn
 
 async function sendResetMail(to, link, lang) {
   const key = process.env.RESEND_API_KEY;
-  // ponytail: 冇配置email服務就唔好靜靜地當成功，直接話返俾人知
-  if (!key) throw Object.assign(new Error('email_not_configured'), { status: 503 });
   const zh = lang !== 'en';
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -33,8 +31,9 @@ async function sendResetMail(to, link, lang) {
     }),
   });
   if (!r.ok) {
+    // 唔可以將寄失敗照拋出去：只有「真係有註冊」先會行到呢步，
+    // 拋error等於話咗俾人聽呢個email有帳號。記錄落server log算數。
     console.error('resend failed', r.status, await r.text());
-    throw Object.assign(new Error('email_send_failed'), { status: 502 });
   }
 }
 
@@ -47,6 +46,9 @@ export default async function handler(req, res) {
     if (action === 'forgot') {
       const mail = (email || '').trim().toLowerCase();
       if (!isEmail(mail)) return res.status(400).json({ error: 'invalid_input' });
+      // 部署層面嘅問題，同「呢個email有冇註冊」無關 —— 要喺查用戶之前答，
+      // 否則有註冊/冇註冊嘅回應唔同，就變咗俾人查邊個email有帳號
+      if (!process.env.RESEND_API_KEY) return res.status(503).json({ error: 'email_not_configured' });
       const r = await pool.query('SELECT id FROM users WHERE email = $1', [mail]);
       // 唔透露個email有冇註冊過（防止拿嚟查邊個有帳號），但真係有先寄
       if (r.rowCount > 0) {
