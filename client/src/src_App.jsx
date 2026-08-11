@@ -1199,18 +1199,19 @@ const App = () => {
                       setEditingNoteIdx(null);
                       setEditNoteDraft('');
                     }}
-                    className="text-left bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-300 rounded-xl overflow-hidden shadow-lg"
+                    className="relative aspect-square text-left bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-300 rounded-xl overflow-hidden shadow-lg"
                   >
                     {recipe.image ? (
-                      <img src={recipe.image} alt={recipe.name} className="w-full aspect-square object-cover" />
+                      <img src={recipe.image} alt={recipe.name} className="absolute inset-0 w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full aspect-square flex items-center justify-center bg-gradient-to-br from-orange-300 to-orange-500 dark:from-gray-600 dark:to-gray-800">
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-orange-300 to-orange-500 dark:from-gray-600 dark:to-gray-800">
                         <span className="text-4xl">{CAT_EMOJI[recipe.category] || '🍽️'}</span>
                       </div>
                     )}
-                    <div className="p-2">
+                    {/* 名同資料疊喺相底部，成張卡先維持到正方形 */}
+                    <div className="absolute inset-x-0 bottom-0 p-2 pt-6 bg-gradient-to-t from-black/85 via-black/55 to-transparent text-white">
                       <p className="font-bold text-sm line-clamp-2">{recipe.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="text-xs text-gray-200 mt-0.5">
                         {totalMin ? `⏱ ${totalMin} ${t.minutesAbbrev} ・ ` : ''}
                         🛒 {count} {t.itemsLabel}
                       </p>
